@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -eu
+
+if [ "$#" -lt 2 ] || ([ "$1" != "--client" ] && [ "$1" != "--server" ]); then
+    cat <<-ENDOFMESSAGE
+Usage: ./run [--client|server] [OPTIONS]
+
+Simple network socket benchmark.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --client              Run in the client mode
+  --server              Run in the server mode
+
+For detail options for the respective mode, run
+./run [-c|s] --help
+ENDOFMESSAGE
+    exit
+fi
+
+if [ "$1" == "--server" ]; then
+    ./server.py "${@:2}"
+else
+    ./client.py "${@:2}"
+fi
