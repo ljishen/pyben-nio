@@ -8,7 +8,10 @@
 $ fallocate -l 1g data_file
 
 # Start the socket server
-$ docker run --rm -ti --network host -v "$(pwd)"/data_file:/root/data_file ljishen/pyben-nio --server -b localhost -s 1g -z
+$ docker run --rm -ti --network host \
+    -v "$(pwd)"/data_file:/root/data_file \
+    ljishen/pyben-nio \
+    --server -b localhost -s 1g -f /root/data_file -z
 
 # Start the socket client
 $ docker run --rm -ti --network host ljishen/pyben-nio --client -s 1g -a localhost
