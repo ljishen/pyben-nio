@@ -19,8 +19,9 @@ ENDOFMESSAGE
     exit
 fi
 
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 if [ "$1" == "--server" ]; then
-    ./server.py "${@:2}"
+    "$script_dir"/server.py "${@:2}"
 else
-    ./client.py "${@:2}"
+    "$script_dir"/client.py "${@:2}"
 fi
