@@ -11,7 +11,7 @@ $ fallocate -l 1g data_file
 $ docker run --rm -ti --network host -v "$(pwd)"/data_file:/root/data_file ljishen/pyben-nio --server -b localhost -s 1g -z
 
 # Start the socket client
-$ docker run --rm -ti --network host ljishen/pyben-nio --client -s 1g -b localhost
+$ docker run --rm -ti --network host ljishen/pyben-nio --client -s 1g -a localhost
 ```
 
 #### Print General Help Message
@@ -55,15 +55,17 @@ optional arguments:
 #### Print Socket Client Help Message
 ```bash
 $ docker run --rm ljishen/pyben-nio --client --help
-usage: client.py [-h] -b BIND -s SIZE [-p PORT] [-l BUFSIZE]
+usage: client.py [-h] -a ADDRESS -s SIZE [-p PORT] [-l BUFSIZE]
 
 Simple network socket client.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -b BIND, --bind BIND  Bind to host, one of this machine's incoming interface
+  -a ADDRESS, --address ADDRESS
+                        The host name or IP address the server is running on
   -s SIZE, --size SIZE  The total size of raw data I/O #[BKMG]
-  -p PORT, --port PORT  The port for the client to connect to (default: 8881)
+  -p PORT, --port PORT  Same as the server port for the client to connect to
+                        (default: 8881)
   -l BUFSIZE, --bufsize BUFSIZE
                         The maximum amount of data in bytes to be received at
                         once (default: 4096) #[BKMG]

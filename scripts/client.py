@@ -6,7 +6,7 @@ import socket
 from datetime import datetime as dt
 from convert import human2bytes
 
-MEM_LIMIT = '500mb'
+MEM_LIMIT = '500MB'
 
 
 def get_args():
@@ -14,8 +14,8 @@ def get_args():
         description='Simple network socket client.')
 
     parser.add_argument(
-        '-b', '--bind', type=str,
-        help='Bind to host, one of this machine\'s incoming interface',
+        '-a', '--address', type=str,
+        help='The host name or IP address the server is running on',
         required=True)
     parser.add_argument(
         '-s', '--size', type=str,
@@ -23,7 +23,7 @@ def get_args():
         required=True)
     parser.add_argument(
         '-p', '--port', type=int,
-        help='The port for the client to connect to (default: 8881)',
+        help='Same as the server port for the client to connect to (default: 8881)',
         default=8881,
         required=False)
     parser.add_argument(
@@ -35,16 +35,16 @@ def get_args():
 
     args = parser.parse_args()
 
-    host = args.bind
+    host_addr = args.address
     size = human2bytes(args.size)
     port = args.port
     bufsize = human2bytes(args.bufsize)
 
-    return host, size, port, bufsize
+    return host_addr, size, port, bufsize
 
 
 def main():
-    host, size, port, bufsize = get_args()
+    host_addr, size, port, bufsize = get_args()
     print("bufsize:", bufsize, "(bytes)")
 
     # Create TCP socket
@@ -54,11 +54,11 @@ def main():
         print("\nError: could not create socket")
         raise
 
-    print("\nConnecting to server at " + host + " on port " + str(port))
+    print("\nConnecting to server at " + host_addr + " on port " + str(port))
 
     # Connect to server
     try:
-        s.connect((host, port))
+        s.connect((host_addr, port))
     except socket.error:
         print("\nError: Could not connect to the server")
         s.close()
