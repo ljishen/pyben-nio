@@ -14,7 +14,7 @@ optional arguments:
   --server              Run in the server mode
 
 For detail options for the respective mode, run
-./run [-c|s] --help
+./run [--client|server] --help
 ENDOFMESSAGE
     exit
 fi

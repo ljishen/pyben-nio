@@ -10,7 +10,10 @@ from datetime import datetime as dt
 
 def get_args():
     parser = argparse.ArgumentParser(
-        description='Simple network socket server.')
+        description='Simple network socket server.',
+        epilog='[BKMG] indicates options that support a \
+                B/K/M/G (b/kb/mb/gb) suffix for \
+                byte, kilobyte, megabyte, or gigabyte')
 
     parser.add_argument(
         '-b', '--bind', type=str,
@@ -18,7 +21,7 @@ def get_args():
         required=True)
     parser.add_argument(
         '-s', '--size', type=str,
-        help='The total size of raw data I/O #[BKMG]',
+        help='The total size of raw data I/O ([BKMG])',
         required=True)
     parser.add_argument(
         '-p', '--port', type=int,
@@ -33,7 +36,7 @@ def get_args():
     parser.add_argument(
         '-l', '--bufsize', type=str,
         help='The maximum amount of data in bytes to be sent at once \
-              (default: 4096) #[BKMG]',
+              (default: 4096) ([BKMG])',
         default='4K',
         required=False)
     parser.add_argument(
@@ -43,18 +46,18 @@ def get_args():
 
     args = parser.parse_args()
 
-    host = args.bind
+    bind_addr = args.bind
     size = human2bytes(args.size)
     port = args.port
     fp = args.filename
     bufsize = human2bytes(args.bufsize)
     zero_copy = args.zerocopy
 
-    return host, size, port, fp, bufsize, zero_copy
+    return bind_addr, size, port, fp, bufsize, zero_copy
 
 
 def main():
-    host, size, port, fp, bufsize, zero_copy = get_args()
+    bind_addr, size, port, fp, bufsize, zero_copy = get_args()
     print("bufsize:", bufsize, "(bytes),", "zero_copy:", zero_copy)
 
     # Create TCP socket
@@ -71,7 +74,7 @@ def main():
         # See https://docs.python.org/3.6/library/socket.html#example
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        s.bind((host, port))
+        s.bind((bind_addr, port))
     except socket.error:
         print("\nError: unable to bind on port", port)
         s.close()

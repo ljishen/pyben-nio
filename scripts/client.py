@@ -11,7 +11,10 @@ MEM_LIMIT = '500MB'
 
 def get_args():
     parser = argparse.ArgumentParser(
-        description='Simple network socket client.')
+        description='Simple network socket client.',
+        epilog='[BKMG] indicates options that support a \
+                B/K/M/G (b/kb/mb/gb) suffix for \
+                byte, kilobyte, megabyte, or gigabyte')
 
     parser.add_argument(
         '-a', '--address', type=str,
@@ -19,17 +22,24 @@ def get_args():
         required=True)
     parser.add_argument(
         '-s', '--size', type=str,
-        help='The total size of raw data I/O #[BKMG]',
+        help='The total size of raw data I/O ([BKMG])',
         required=True)
     parser.add_argument(
         '-p', '--port', type=int,
-        help='Same as the server port for the client to connect to (default: 8881)',
+        help='The client connects to the port where the server is listening on \
+             (default: 8881)',
         default=8881,
+        required=False)
+    parser.add_argument(
+        '-b', '--bind', type=str,
+        help='Specify the incoming interface for receiving data, \
+              rather than allowing the kernel to set the local address to \
+              INADDR_ANY during connect (see ip(7), connect(2))',
         required=False)
     parser.add_argument(
         '-l', '--bufsize', type=str,
         help='The maximum amount of data in bytes to be received at once \
-              (default: 4096) #[BKMG]',
+              (default: 4096) ([BKMG])',
         default='4K',
         required=False)
 
@@ -38,13 +48,14 @@ def get_args():
     host_addr = args.address
     size = human2bytes(args.size)
     port = args.port
+    bind_addr = args.bind
     bufsize = human2bytes(args.bufsize)
 
-    return host_addr, size, port, bufsize
+    return host_addr, size, port, bind_addr, bufsize
 
 
 def main():
-    host_addr, size, port, bufsize = get_args()
+    host_addr, size, port, bind_addr, bufsize = get_args()
     print("bufsize:", bufsize, "(bytes)")
 
     # Create TCP socket
@@ -55,6 +66,23 @@ def main():
         raise
 
     print("\nConnecting to server at " + host_addr + " on port " + str(port))
+
+    if bind_addr:
+        # Bind the interface for data receiving
+        try:
+            # See the "The port 0 trick"
+            # (https://www.dnorth.net/2012/03/17/the-port-0-trick/)
+            # and "Bind before connect"
+            # (https://idea.popcount.org/2014-04-03-bind-before-connect/)
+            #
+            # We might not need to set the socket flag SO_REUSEADDR since
+            # the server side also ready does so.
+            s.bind((bind_addr, 0))
+        except socket.error:
+            print("\nError: unable to bind on the local address", bind_addr)
+            s.close()
+            s = None
+            raise
 
     # Connect to server
     try:
