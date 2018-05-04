@@ -134,24 +134,31 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
     return recvd, dur
 
 
+def allot_size(size, num):
+    i_size = size // num
+    left = size - i_size * num
+
+    p_sizes = [i_size] * num
+    for i in range(0, left):
+        p_sizes[i] += 1
+
+    return p_sizes
+
+
 def main():
     host_addrs, size, port, bind_addr, bufsize = get_args()
     print("bufsize:", bufsize, "(bytes)")
 
     num_servs = len(host_addrs)
-    if size % num_servs != 0:
-        raise ValueError("Total size of raw data I/O " + str(size) +
-                         " bytes is not divisible by the number of servers " +
-                         str(num_servs))
 
-    p_size = int(size / num_servs)
+    p_sizes = allot_size(size, num_servs)
     mem_limit_bs = human2bytes(MEM_LIMIT) // num_servs
 
     with Pool(processes=num_servs) as pool:
         futures = [pool.apply_async(run,
-                                    (addr, p_size, port, bind_addr,
+                                    (addr, p_sizes[idx], port, bind_addr,
                                      bufsize, mem_limit_bs))
-                   for addr in host_addrs]
+                   for idx, addr in enumerate(host_addrs)]
         multi_results = [f.get() for f in futures]
 
     (total_recvd, total_dur) = (sum(c) for c in zip(*multi_results))
