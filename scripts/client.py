@@ -4,7 +4,10 @@ import argparse
 import socket
 
 from datetime import datetime as dt
+
 from convert import human2bytes
+from multiprocessing import Pool
+from os import getpid
 
 MEM_LIMIT = '500MB'
 
@@ -17,8 +20,9 @@ def get_args():
                 byte, kilobyte, megabyte, or gigabyte')
 
     parser.add_argument(
-        '-a', '--address', type=str,
-        help='The host name or IP address the server is running on',
+        '-a', '--addresses', metavar='ADDRS', nargs='+',
+        help='The list of host names or IP addresses the servers are running on \
+              (separated by space)',
         required=True)
     parser.add_argument(
         '-s', '--size', type=str,
@@ -37,7 +41,7 @@ def get_args():
               INADDR_ANY during connect (see ip(7), connect(2))',
         required=False)
     parser.add_argument(
-        '-l', '--bufsize', type=str,
+        '-l', '--bufsize', metavar='BS', type=str,
         help='The maximum amount of data in bytes to be received at once \
               (default: 4096) ([BKMG])',
         default='4K',
@@ -45,27 +49,26 @@ def get_args():
 
     args = parser.parse_args()
 
-    host_addr = args.address
+    host_addrs = args.addresses
     size = human2bytes(args.size)
     port = args.port
     bind_addr = args.bind
     bufsize = human2bytes(args.bufsize)
 
-    return host_addr, size, port, bind_addr, bufsize
+    return host_addrs, size, port, bind_addr, bufsize
 
 
-def main():
-    host_addr, size, port, bind_addr, bufsize = get_args()
-    print("bufsize:", bufsize, "(bytes)")
-
+def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
     # Create TCP socket
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
-        print("\nError: could not create socket")
+        print("\n[PID " + str(getpid()) + "]",
+              "[ERROR] Could not create socket")
         raise
 
-    print("\nConnecting to server at " + host_addr + " on port " + str(port))
+    print("\n[PID " + str(getpid()) + "]",
+          "Connecting to servers", addr, "on port", port)
 
     if bind_addr:
         # Bind the interface for data receiving
@@ -79,23 +82,25 @@ def main():
             # the server side also ready does so.
             s.bind((bind_addr, 0))
         except socket.error:
-            print("\nError: unable to bind on the local address", bind_addr)
+            print("\n[PID " + str(getpid()) + "]",
+                  "[ERROR] Unable to bind on the local address", bind_addr)
             s.close()
             s = None
             raise
 
     # Connect to server
     try:
-        s.connect((host_addr, port))
+        s.connect((addr, port))
     except socket.error:
-        print("\nError: Could not connect to the server")
+        print("\n[PID " + str(getpid()) + "]",
+              "[ERROR] Could not connect to the server", addr)
         s.close()
         s = None
         raise
 
-    print("\nConnection established. Receiving data ...")
+    print("\n[PID " + str(getpid()) + "]",
+          "Connection established. Receiving data ...")
 
-    mem_limit_bs = human2bytes(MEM_LIMIT)
     left = size
     objs_size = 0
     obj_pool = []
@@ -117,11 +122,42 @@ def main():
                 del obj_pool[:(len(obj_pool) // 2)]
                 objs_size //= 2
     finally:
-        t_dur = dt.now().timestamp() - t_start
-        print("\nTotal received", (size - left), "bytes of data in", t_dur, "seconds")
-        print("(bitrate=" + str((size - left) * 8 / t_dur) + "bit/s)")
+        dur = dt.now().timestamp() - t_start
+        recvd = size - left
+        print("\n[PID " + str(getpid()) + "]",
+              "Received", recvd,
+              "bytes of data in", dur, "seconds",
+              "(bitrate=" + str(recvd * 8 / dur) + "bit/s)")
         s.close()
-        print("\nSockets closed, now exiting")
+        print("\n[PID " + str(getpid()) + "]", "Sockets closed")
+
+    return recvd, dur
+
+
+def main():
+    host_addrs, size, port, bind_addr, bufsize = get_args()
+    print("bufsize:", bufsize, "(bytes)")
+
+    num_servs = len(host_addrs)
+    if size % num_servs != 0:
+        raise ValueError("Total size of raw data I/O " + str(size) +
+                         " bytes is not divisible by the number of servers " +
+                         str(num_servs))
+
+    p_size = int(size / num_servs)
+    mem_limit_bs = human2bytes(MEM_LIMIT) // num_servs
+
+    with Pool(processes=num_servs) as pool:
+        futures = [pool.apply_async(run,
+                                    (addr, p_size, port, bind_addr,
+                                     bufsize, mem_limit_bs))
+                   for addr in host_addrs]
+        multi_results = [f.get() for f in futures]
+
+    (total_recvd, total_dur) = (sum(c) for c in zip(*multi_results))
+    print("\n[SUMMARY] Received", total_recvd,
+          "bytes of data in", total_dur, "seconds",
+          "(bitrate=" + str(total_recvd * 8 / total_dur) + "bit/s)")
 
 
 if __name__ == "__main__":

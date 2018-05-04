@@ -8,6 +8,7 @@ import tempfile
 from convert import human2bytes
 from datetime import datetime as dt
 
+
 def get_args():
     parser = argparse.ArgumentParser(
         description='Simple network socket server.',
@@ -29,12 +30,12 @@ def get_args():
         default=8881,
         required=False)
     parser.add_argument(
-        '-f', '--filename', type=argparse.FileType('rb'),
+        '-f', '--filename', metavar='FN', type=argparse.FileType('rb'),
         help='Read from this file and write to the network, \
               instead of generating a temporary file with random data',
         required=False)
     parser.add_argument(
-        '-l', '--bufsize', type=str,
+        '-l', '--bufsize', metavar='BS', type=str,
         help='The maximum amount of data in bytes to be sent at once \
               (default: 4096) ([BKMG])',
         default='4K',
@@ -64,19 +65,20 @@ def main():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
-        print("\nError: could not create socket")
+        print("\n[ERROR] Could not create socket")
         raise
 
     # Bind to listening port
     try:
         # The SO_REUSEADDR flag tells the kernel to reuse a local socket
-        # in TIME_WAIT state, without waiting for its natural timeout to expire.
+        # in TIME_WAIT state, without waiting for its natural timeout to
+        # expire.
         # See https://docs.python.org/3.6/library/socket.html#example
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         s.bind((bind_addr, port))
     except socket.error:
-        print("\nError: unable to bind on port", port)
+        print("\n[ERROR] Unable to bind on port", port)
         s.close()
         s = None
         raise
@@ -85,7 +87,7 @@ def main():
     try:
         s.listen(1)
     except socket.error:
-        print("\nError: unable to listen()")
+        print("\n[ERROR] Unable to listen()")
         s.close()
         s = None
         raise
@@ -101,7 +103,8 @@ def main():
         if not fsize:
             raise RuntimeError("Invalid file size", fsize)
 
-        print("\nReady to send", size, "bytes using data file size of", fsize, "bytes")
+        print("\nReady to send", size, "bytes using data file size of",
+              fsize, "bytes")
 
         print("\nListening socket bound to port", port)
         try:
@@ -110,12 +113,13 @@ def main():
             #  (1) The original listening socket, still active
             #  (2) The new socket connected to the client
         except socket.error:
-            print("\nError: unable to accept()")
+            print("\n[ERROR] Unable to accept()")
             s.close()
             s = None
             raise
 
-        print("\nAccepted incoming connection", client_addr, "from client. Sending data ...")
+        print("\nAccepted incoming connection", client_addr,
+              "from client. Sending data ...")
 
         t_start = dt.now().timestamp()
         try:
@@ -124,7 +128,7 @@ def main():
                 if zero_copy:
                     bys = min(left, fsize)
                     client_s.sendfile(fp, count=bys)
-                    print("sent data bytes", bys)
+                    # print("Sent", bys, "bytes of data")
                     left -= bys
                 else:
                     bys = min(left, bufsize)
@@ -137,15 +141,23 @@ def main():
                     if len(bytes_obj) < bys:
                         fp.seek(0)
 
-                    client_s.send(bytes_obj)
-                    left -= len(bytes_obj)
-                    # print("Sent", len(bytes_obj), "bytes of data")
-        except ConnectionResetError as msg:
-            print("Connection closed by client")
+                    sent = client_s.send(bytes_obj)
+                    left -= sent
+                    # print("Sent", sent, "bytes of data")
+        except (ConnectionResetError, BrokenPipeError) as es:
+            print("[WARNING] Connection closed by client")
+            if zero_copy:
+                # File position is updated on socket.sendfile() return or also
+                # in case of error in which case file.tell() can be used to
+                # figure out the number of bytes which were sent.
+                # https://docs.python.org/3/library/socket.html#socket.socket.sendfile
+                left -= fp.tell()
         finally:
-            t_dur = dt.now().timestamp() - t_start
-            print("\nTotal sent", (size - left), "bytes of data in", t_dur, "seconds")
-            print("(bitrate=" + str((size - left) * 8 / t_dur) + "bit/s)")
+            dur = dt.now().timestamp() - t_start
+            sent = size - left
+            print("\nTotal sent", sent,
+                  "bytes of data in", dur, "seconds",
+                  "(bitrate=" + str(sent * 8 / dur) + "bit/s)")
             client_s.close()
             s.close()
             print("\nSockets closed, now exiting")
