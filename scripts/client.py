@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 import socket
 
 from datetime import datetime as dt
 
 from convert import human2bytes
 from multiprocessing import Pool
-from os import getpid
+
+logging.basicConfig(
+    format='%(asctime)s - [%(levelname)s][PID=%(process)d] %(message)s',
+    level=logging.INFO)
 
 MEM_LIMIT = '500MB'
 
@@ -63,12 +67,10 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
-        print("\n[PID " + str(getpid()) + "]",
-              "[ERROR] Could not create socket")
+        logging.exception("Could not create socket")
         raise
 
-    print("\n[PID " + str(getpid()) + "]",
-          "Connecting to servers", addr, "on port", port)
+    logging.info("Connecting to server %s on port %d", addr, port)
 
     if bind_addr:
         # Bind the interface for data receiving
@@ -82,8 +84,7 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
             # the server side also ready does so.
             s.bind((bind_addr, 0))
         except socket.error:
-            print("\n[PID " + str(getpid()) + "]",
-                  "[ERROR] Unable to bind on the local address", bind_addr)
+            logging.exception("Unable to bind on the local address %s", bind_addr)
             s.close()
             s = None
             raise
@@ -92,14 +93,12 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
     try:
         s.connect((addr, port))
     except socket.error:
-        print("\n[PID " + str(getpid()) + "]",
-              "[ERROR] Could not connect to the server", addr)
+        logging.exception("Could not connect to the server %s", addr)
         s.close()
         s = None
         raise
 
-    print("\n[PID " + str(getpid()) + "]",
-          "Connection established. Receiving data ...")
+    logging.info("Connection established. Receiving data ...")
 
     left = size
     objs_size = 0
@@ -114,7 +113,7 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
                 break
 
             obj_s = len(bytes_obj)
-            # print("Received", obj_s, "bytes of data")
+            logging.debug("Received %d bytes of data", obj_s)
             obj_pool.append(bytes_obj)
             left -= obj_s
             objs_size += obj_s
@@ -124,12 +123,11 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
     finally:
         dur = dt.now().timestamp() - t_start
         recvd = size - left
-        print("\n[PID " + str(getpid()) + "]",
-              "Received", recvd,
-              "bytes of data in", dur, "seconds",
-              "(bitrate=" + str(recvd * 8 / dur) + "bit/s)")
+        logging.info("Received %d bytes of data in %s seconds \
+(bitrate: %s bit/s)",
+                     recvd, dur, recvd * 8 / dur)
         s.close()
-        print("\n[PID " + str(getpid()) + "]", "Sockets closed")
+        logging.info("Socket closed")
 
     return recvd, dur
 
@@ -147,7 +145,7 @@ def allot_size(size, num):
 
 def main():
     host_addrs, size, port, bind_addr, bufsize = get_args()
-    print("bufsize:", bufsize, "(bytes)")
+    logging.info("bufsize: %d bytes", bufsize)
 
     num_servs = len(host_addrs)
 
@@ -162,9 +160,9 @@ def main():
         multi_results = [f.get() for f in futures]
 
     (total_recvd, total_dur) = (sum(c) for c in zip(*multi_results))
-    print("\n[SUMMARY] Received", total_recvd,
-          "bytes of data in", total_dur, "seconds",
-          "(bitrate=" + str(total_recvd * 8 / total_dur) + "bit/s)")
+    logging.info("[SUMMARY] Total received %d bytes of data in %s seconds \
+(bitrate: %s bit/s)",
+                 total_recvd, total_dur, total_recvd * 8 / total_dur)
 
 
 if __name__ == "__main__":

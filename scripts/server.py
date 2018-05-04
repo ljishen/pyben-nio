@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 import os
 import socket
 import tempfile
 
 from convert import human2bytes
 from datetime import datetime as dt
+
+logging.basicConfig(
+    format='%(asctime)s - [%(levelname)s] %(message)s',
+    level=logging.INFO)
 
 
 def get_args():
@@ -59,13 +64,13 @@ def get_args():
 
 def main():
     bind_addr, size, port, fp, bufsize, zero_copy = get_args()
-    print("bufsize:", bufsize, "(bytes),", "zero_copy:", zero_copy)
+    logging.info("bufsize: %d bytes, zero_copy: %r", bufsize, zero_copy)
 
     # Create TCP socket
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
-        print("\n[ERROR] Could not create socket")
+        logging.exception("Could not create socket")
         raise
 
     # Bind to listening port
@@ -78,7 +83,7 @@ def main():
 
         s.bind((bind_addr, port))
     except socket.error:
-        print("\n[ERROR] Unable to bind on port", port)
+        logging.exception("Unable to bind on port %d", port)
         s.close()
         s = None
         raise
@@ -87,7 +92,7 @@ def main():
     try:
         s.listen(1)
     except socket.error:
-        print("\n[ERROR] Unable to listen()")
+        logging.exception("Unable to listen()")
         s.close()
         s = None
         raise
@@ -95,7 +100,8 @@ def main():
     try:
         if not fp:
             fp = tempfile.TemporaryFile('w+b')
-            print("\nGenerating temporary file of size", size, "bytes ...")
+            logging.info("Generating temporary file of size %d bytes ...",
+                         size)
             fp.write(os.urandom(size))
             fp.flush()
 
@@ -103,23 +109,23 @@ def main():
         if not fsize:
             raise RuntimeError("Invalid file size", fsize)
 
-        print("\nReady to send", size, "bytes using data file size of",
-              fsize, "bytes")
+        logging.info("Ready to send %d bytes using data file size of %d bytes",
+                     size, fsize)
 
-        print("\nListening socket bound to port", port)
+        logging.info("Listening socket bound to port %d", port)
         try:
             (client_s, client_addr) = s.accept()
             # If successful, we now have TWO sockets
             #  (1) The original listening socket, still active
             #  (2) The new socket connected to the client
         except socket.error:
-            print("\n[ERROR] Unable to accept()")
+            logging.exception("Unable to accept()")
             s.close()
             s = None
             raise
 
-        print("\nAccepted incoming connection", client_addr,
-              "from client. Sending data ...")
+        logging.info("Accepted incoming connection %s from client. \
+Sending data ...", client_addr)
 
         t_start = dt.now().timestamp()
         try:
@@ -128,7 +134,7 @@ def main():
                 if zero_copy:
                     bys = min(left, fsize)
                     client_s.sendfile(fp, count=bys)
-                    # print("Sent", bys, "bytes of data")
+                    logging.debug("Sent %d bytes of data", bys)
                     left -= bys
                 else:
                     bys = min(left, bufsize)
@@ -143,9 +149,9 @@ def main():
 
                     sent = client_s.send(bytes_obj)
                     left -= sent
-                    # print("Sent", sent, "bytes of data")
+                    logging.debug("Sent %d bytes of data", sent)
         except (ConnectionResetError, BrokenPipeError) as es:
-            print("[WARNING] Connection closed by client")
+            logging.warn("Connection closed by client")
             if zero_copy:
                 # File position is updated on socket.sendfile() return or also
                 # in case of error in which case file.tell() can be used to
@@ -155,12 +161,12 @@ def main():
         finally:
             dur = dt.now().timestamp() - t_start
             sent = size - left
-            print("\nTotal sent", sent,
-                  "bytes of data in", dur, "seconds",
-                  "(bitrate=" + str(sent * 8 / dur) + "bit/s)")
+            logging.info("Total sent %d bytes of data in %s seconds \
+(bitrate: %s bit/s)",
+                         sent, dur, sent * 8 / dur)
             client_s.close()
             s.close()
-            print("\nSockets closed, now exiting")
+            logging.info("Sockets closed, now exiting")
     finally:
         fp.close()
 
