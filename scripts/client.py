@@ -6,7 +6,7 @@ import socket
 
 from datetime import datetime as dt
 
-from convert import human2bytes
+from converter import human2bytes
 from multiprocessing import Pool
 
 logging.basicConfig(

@@ -6,7 +6,7 @@ import os
 import socket
 import tempfile
 
-from convert import human2bytes
+from converter import human2bytes
 from datetime import datetime as dt
 
 logging.basicConfig(
