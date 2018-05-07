@@ -84,7 +84,8 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
             # the server side also ready does so.
             s.bind((bind_addr, 0))
         except socket.error:
-            logging.exception("Unable to bind on the local address %s", bind_addr)
+            logging.exception(
+                "Unable to bind on the local address %s", bind_addr)
             s.close()
             s = None
             raise
@@ -121,7 +122,8 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
                 del obj_pool[:(len(obj_pool) // 2)]
                 objs_size //= 2
     finally:
-        dur = dt.now().timestamp() - t_start
+        t_end = dt.now().timestamp()
+        dur = t_end - t_start
         recvd = size - left
         logging.info("Received %d bytes of data in %s seconds \
 (bitrate: %s bit/s)",
@@ -129,16 +131,18 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
         s.close()
         logging.info("Socket closed")
 
-    return recvd, dur
+    return t_start, t_end, recvd
 
 
 def allot_size(size, num):
     i_size = size // num
     left = size - i_size * num
 
-    p_sizes = [i_size] * num
-    for i in range(0, left):
-        p_sizes[i] += 1
+    p_sizes = []
+    for i in range(num):
+        p_sizes.append(i_size)
+        if i < left:
+            p_sizes[i] += 1
 
     return p_sizes
 
@@ -159,7 +163,9 @@ def main():
                    for idx, addr in enumerate(host_addrs)]
         multi_results = [f.get() for f in futures]
 
-    (total_recvd, total_dur) = (sum(c) for c in zip(*multi_results))
+    t_starts, t_ends, recvds = zip(*multi_results)
+    total_dur = max(t_ends) - min(t_starts)
+    total_recvd = sum(recvds)
     logging.info("[SUMMARY] Total received %d bytes of data in %s seconds \
 (bitrate: %s bit/s)",
                  total_recvd, total_dur, total_recvd * 8 / total_dur)
