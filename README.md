@@ -3,6 +3,12 @@
 Simple Python Network Socket Benchmark.
 
 
+## Supported Architectures
+
+- amd64
+- arm64v8
+
+
 ## Usage
 
 
