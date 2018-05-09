@@ -89,3 +89,17 @@ optional arguments:
 [BKMG] indicates options that support a B/K/M/G (b/kb/mb/gb) suffix for byte,
 kilobyte, megabyte, or gigabyte
 ```
+
+
+## Miscellaneous
+
+#### Commands to Create the Docker Image Manifest
+
+```bash
+docker manifest create ljishen/pyben-nio ljishen/pyben-nio:amd64 ljishen/pyben-nio:arm64v8
+docker manifest annotate ljishen/pyben-nio ljishen/pyben-nio:amd64 --os linux --arch amd64
+docker manifest annotate ljishen/pyben-nio ljishen/pyben-nio:arm64v8 --os linux --arch arm64 --variant v8
+docker manifest push ljishen/pyben-nio
+```
+
+References: [Create and use multi-architecture docker images](https://developer.ibm.com/linuxonpower/2017/07/27/create-multi-architecture-docker-image/)
