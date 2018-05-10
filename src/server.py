@@ -9,10 +9,6 @@ import tempfile
 from converter import human2bytes
 from datetime import datetime as dt
 
-logging.basicConfig(
-    format='%(asctime)s - [%(levelname)s] %(message)s',
-    level=logging.INFO)
-
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -172,4 +168,8 @@ Sending data ...", client_addr)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        format='%(asctime)s - [%(levelname)s] %(message)s',
+        level=logging.INFO)
+
     main()

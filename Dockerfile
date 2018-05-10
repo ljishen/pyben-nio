@@ -4,6 +4,6 @@ MAINTAINER Jianshen Liu <jliu120@ucsc.edu>
 RUN apk --no-cache add bash
 
 WORKDIR /root
-COPY scripts scripts
+COPY src src
 
-ENTRYPOINT ["scripts/run"]
+ENTRYPOINT ["src/run"]

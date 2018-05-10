@@ -9,9 +9,6 @@ from datetime import datetime as dt
 from converter import human2bytes
 from multiprocessing import Pool
 
-logging.basicConfig(
-    format='%(asctime)s - [%(levelname)s][PID=%(process)d] %(message)s',
-    level=logging.INFO)
 
 MEM_LIMIT = '500MB'
 
@@ -172,4 +169,8 @@ def main():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        format='%(asctime)s - [%(levelname)s][PID=%(process)d] %(message)s',
+        level=logging.INFO)
+
     main()
