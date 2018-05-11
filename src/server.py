@@ -6,8 +6,8 @@ import os
 import socket
 import tempfile
 
-from converter import human2bytes
 from datetime import datetime as dt
+from converter import human2bytes
 
 
 def get_args():
@@ -64,7 +64,7 @@ def main():
 
     # Create TCP socket
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
         logging.exception("Could not create socket")
         raise
@@ -75,22 +75,22 @@ def main():
         # in TIME_WAIT state, without waiting for its natural timeout to
         # expire.
         # See https://docs.python.org/3.6/library/socket.html#example
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        s.bind((bind_addr, port))
+        sock.bind((bind_addr, port))
     except socket.error:
         logging.exception("Unable to bind on port %d", port)
-        s.close()
-        s = None
+        sock.close()
+        sock = None
         raise
 
     # Listen
     try:
-        s.listen(1)
+        sock.listen(1)
     except socket.error:
         logging.exception("Unable to listen()")
-        s.close()
-        s = None
+        sock.close()
+        sock = None
         raise
 
     try:
@@ -110,14 +110,14 @@ def main():
 
         logging.info("Listening socket bound to port %d", port)
         try:
-            (client_s, client_addr) = s.accept()
+            (client_s, client_addr) = sock.accept()
             # If successful, we now have TWO sockets
             #  (1) The original listening socket, still active
             #  (2) The new socket connected to the client
         except socket.error:
             logging.exception("Unable to accept()")
-            s.close()
-            s = None
+            sock.close()
+            sock = None
             raise
 
         logging.info("Accepted incoming connection %s from client. \
@@ -146,7 +146,7 @@ Sending data ...", client_addr)
                     sent = client_s.send(bytes_obj)
                     left -= sent
                     logging.debug("Sent %d bytes of data", sent)
-        except (ConnectionResetError, BrokenPipeError) as es:
+        except (ConnectionResetError, BrokenPipeError):
             logging.warn("Connection closed by client")
             if zero_copy:
                 # File position is updated on socket.sendfile() return or also
@@ -161,7 +161,7 @@ Sending data ...", client_addr)
 (bitrate: %s bit/s)",
                          sent, dur, sent * 8 / dur)
             client_s.close()
-            s.close()
+            sock.close()
             logging.info("Sockets closed, now exiting")
     finally:
         fp.close()

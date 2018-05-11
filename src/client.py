@@ -6,8 +6,8 @@ import socket
 
 from datetime import datetime as dt
 
-from converter import human2bytes
 from multiprocessing import Pool
+from converter import human2bytes
 
 
 MEM_LIMIT = '500MB'
@@ -62,7 +62,7 @@ def get_args():
 def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
     # Create TCP socket
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
         logging.exception("Could not create socket")
         raise
@@ -79,21 +79,21 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
             #
             # We might not need to set the socket flag SO_REUSEADDR since
             # the server side also ready does so.
-            s.bind((bind_addr, 0))
+            sock.bind((bind_addr, 0))
         except socket.error:
             logging.exception(
                 "Unable to bind on the local address %s", bind_addr)
-            s.close()
-            s = None
+            sock.close()
+            sock = None
             raise
 
     # Connect to server
     try:
-        s.connect((addr, port))
+        sock.connect((addr, port))
     except socket.error:
         logging.exception("Could not connect to the server %s", addr)
-        s.close()
-        s = None
+        sock.close()
+        sock = None
         raise
 
     logging.info("Connection established. Receiving data ...")
@@ -106,7 +106,7 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
     try:
         while left > 0:
             bys = min(bufsize, left)
-            bytes_obj = s.recv(bys)
+            bytes_obj = sock.recv(bys)
             if not bytes_obj:
                 break
 
@@ -125,7 +125,7 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
         logging.info("Received %d bytes of data in %s seconds \
 (bitrate: %s bit/s)",
                      recvd, dur, recvd * 8 / dur)
-        s.close()
+        sock.close()
         logging.info("Socket closed")
 
     return t_start, t_end, recvd
