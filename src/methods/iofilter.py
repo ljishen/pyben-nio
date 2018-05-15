@@ -12,8 +12,7 @@ class IOFilter(abc.ABC):
 
     Args:
         file_obj (typing.BinaryIO): The file object to read from.
-        kwargs (typing.Dict[str, typing.Union[str, int]]):
-            The specific method parameters.
+        **kwargs: Extra parameters for specific method.
 
     """
 
@@ -22,7 +21,7 @@ class IOFilter(abc.ABC):
     def __init__(
             self,
             file_obj: typing.BinaryIO,
-            **kwargs: typing.Dict[str, typing.Union[str, int]]) -> None:
+            **kwargs) -> None:
         self.file_obj = file_obj
         self.kwargs = kwargs
 
