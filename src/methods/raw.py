@@ -14,7 +14,7 @@ class Raw(IOFilter):
 
     logger = logging.getLogger(__name__)
 
-    def read(self, size):
+    def read(self, size: int=-1) -> bytes:
         while True:
             bytes_obj = self.file_obj.read(size)
 
@@ -24,18 +24,7 @@ class Raw(IOFilter):
             if bytes_obj:
                 return bytes_obj
 
-    @classmethod
-    def _create(
-            cls: typing.Type['Raw'],
-            constr_param_names: typing.List[str],
-            file_obj: typing.BinaryIO,
-            extra_args_dict: typing.Dict[str, str]) -> 'Raw':
-        if extra_args_dict:
-            err = ValueError("Unknow method parameters: %s" % extra_args_dict)
-            cls._log_and_exit(err)
-        return Raw(file_obj)
-
     @staticmethod
-    def print_desc():
-        print('Module: ' + __name__)
-        print('\tExtra constructor parameter is not necessary.')
+    def _get_method_params() -> typing.Dict[
+            str, typing.Callable[[str], typing.Union[str, int]]]:
+        return {}

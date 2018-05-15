@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from inspect import getfullargspec
-
 import abc
 import logging
 import re
@@ -14,13 +12,19 @@ class IOFilter(abc.ABC):
 
     Args:
         file_obj (typing.BinaryIO): The file object to read from.
+        kwargs (typing.Dict[str, typing.Union[str, int]]):
+            The specific method parameters.
 
     """
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self, file_obj: typing.BinaryIO) -> None:
+    def __init__(
+            self,
+            file_obj: typing.BinaryIO,
+            **kwargs: typing.Dict[str, typing.Union[str, int]]) -> None:
         self.file_obj = file_obj
+        self.kwargs = kwargs
 
     @abc.abstractmethod
     def read(self, size: int=-1) -> bytes:
@@ -64,40 +68,36 @@ class IOFilter(abc.ABC):
 
             extra_args_dict[pair[0]] = pair[1]
 
-        cls.logger.info("[method: %s] [parameters: %s]",
+        cls.logger.info("[method: %s] [input parameters: %s]",
                         cls.__module__, extra_args_dict)
 
-        # Get the parameter names of the class constructor but
-        # omit the first and second one -- the self and file_obj.
-        constr_param_names = getfullargspec(cls.__init__)[0][2:]
+        method_params = cls._get_method_params()
+        kwargs = {}  # type: typing.Dict[str, typing.Union[str, int]]
+        for n, f in method_params.items():
+            input_v = extra_args_dict.pop(n, '')
+            if not input_v:
+                err = ValueError(
+                    "Required method parameter '%s' not found." % n)
+                cls._log_and_exit(err)
 
-        return cls._create(
-            constr_param_names,
-            file_obj,
-            extra_args_dict)
+            kwargs[n] = f(input_v)
 
-    @classmethod
+        if extra_args_dict:
+            err = ValueError(
+                "Unknow extra method paramsters %s" % extra_args_dict)
+            cls._log_and_exit(err)
+
+        return cls(file_obj, **kwargs)
+
+    @staticmethod
     @abc.abstractmethod
-    def _create(
-            cls: typing.Type['IOFilter'],
-            constr_param_names: typing.List[str],
-            file_obj: typing.BinaryIO,
-            extra_args_dict: typing.Dict[str, str]) -> 'IOFilter':
-        """Create specific class instance.
+    def _get_method_params() -> typing.Dict[
+            str, typing.Callable[[str], typing.Union[str, int]]]:
+        """Return required method parameters in dictionary.
 
-        Args:
-            cls (typing.Type['IOFilter']): The class itself. See the type hints
-                for the class itself on https://stackoverflow.com/a/44664064
-            constr_param_names (typing.List[str]): The necessary constructor
-                parameters starting from the third one.
-            file_obj (typing.BinaryIO): The first parameter in the constructor.
-            extra_args_dict (typing.Dict[str, str]): The remaining optional
-                parameters in key-value pairs to be passed in the
-                constructor.
-
-        Returns:
-            'IOFilter': See why we can only use string instead of the
-                class itself on https://stackoverflow.com/a/33533514
+        For each item in the return dictionary, the key is the name of the
+        parameter, and the value is a function to convert the input value
+        in string into the necessary type used in the program.
 
         """
 
@@ -108,7 +108,13 @@ class IOFilter(abc.ABC):
         cls.logger.error(str(err))
         raise err
 
-    @staticmethod
-    @abc.abstractmethod
-    def print_desc() -> None:
+    @classmethod
+    def print_desc(cls: typing.Type['IOFilter']) -> None:
         """Print information about method initialization."""
+        print('Module: ' + cls.__module__)
+
+        method_params = cls._get_method_params()
+        if method_params:
+            print('\tExtra method parameter', method_params)
+        else:
+            print('\tExtra method parameter is not required.')
