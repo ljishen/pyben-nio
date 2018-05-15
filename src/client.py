@@ -149,7 +149,7 @@ def __allot_size(size, num):
 
 def main():
     host_addrs, size, port, bind_addr, bufsize = __get_args()
-    logger.info("bufsize: %d bytes", bufsize)
+    logger.info("[bufsize: %d bytes]", bufsize)
 
     num_servs = len(host_addrs)
 
@@ -173,8 +173,8 @@ def main():
 
 if __name__ == "__main__":
     logging.basicConfig(
-        format='%(asctime)s - %(name)s - \
-[%(levelname)s][PID=%(process)d] %(message)s',
+        format='%(asctime)s | %(name)s | \
+%(levelname)-8s | PID=%(process)d | %(message)s',
         level=logging.INFO)
     logger = logging.getLogger('client')  # pylint: disable=C0103
 

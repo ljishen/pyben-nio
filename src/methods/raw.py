@@ -12,7 +12,15 @@ class Raw(IOFilter):
     """Read the data without any filtering."""
 
     def read(self, size):
-        return self.file_obj.read(size)
+        while True:
+            bytes_obj = self.file_obj.read(size)
+
+            if len(bytes_obj) < size:
+                self.file_obj.seek(0)
+
+            if bytes_obj:
+                return bytes_obj
+
 
     @staticmethod
     def _create(

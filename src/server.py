@@ -187,7 +187,7 @@ def main():
 
     if not zerocopy:
         classobj = __get_classobj_of(method[0])
-        iofilter = classobj.create(file_obj, method[1:])
+        iofilter = classobj.create(file_obj, extra_args=method[1:])
 
     logger.info("Ready to send %d bytes using data file size of %d bytes",
                 size, fsize)
@@ -221,12 +221,6 @@ Sending data ...", client_addr)
                 bys = min(left, bufsize)
                 bytes_obj = iofilter.read(bys)
 
-                if len(bytes_obj) < bys:
-                    file_obj.seek(0)
-
-                if not bytes_obj:
-                    continue
-
                 sent = client_s.send(bytes_obj)
                 left -= sent
                 logger.debug("Sent %d bytes of data", sent)
@@ -253,7 +247,7 @@ Sending data ...", client_addr)
 
 if __name__ == "__main__":
     logging.basicConfig(
-        format='%(asctime)s - %(name)-16s - [%(levelname)s] %(message)s',
+        format='%(asctime)s | %(name)-16s | %(levelname)-8s | %(message)s',
         level=logging.INFO)
     logger = logging.getLogger('server')  # pylint: disable=C0103
 

@@ -54,8 +54,6 @@ class IOFilter(abc.ABC):
                 class itself on https://stackoverflow.com/a/33533514
 
         """
-        cls.logger.info("[method: %s]", cls.__module__)
-
         extra_args_dict = {}  # type: typing.Dict[str, str]
         for item in extra_args:
             pair = re.split('[:=]', item, maxsplit=1)
@@ -66,7 +64,8 @@ class IOFilter(abc.ABC):
 
             extra_args_dict[pair[0]] = pair[1]
 
-        cls.logger.info("Method parameters: " + str(extra_args_dict))
+        cls.logger.info("[method: %s] [parameters: %s]",
+                        cls.__module__, extra_args_dict)
 
         # Get the parameter names of the class constructor but
         # omit the first and second one -- the self and file_obj.
