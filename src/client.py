@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from datetime import datetime as dt
+from multiprocessing import Pool
 
 import argparse
 import logging
 import socket
 
-from datetime import datetime as dt
-
-from multiprocessing import Pool
-from converter import human2bytes
+from converter import Converter
 
 
-MEM_LIMIT = '500MB'
-
-
-def get_args():
+def __get_args():
     parser = argparse.ArgumentParser(
         description='Simple network socket client.',
         epilog='[BKMG] indicates options that support a \
@@ -51,23 +49,23 @@ def get_args():
     args = parser.parse_args()
 
     host_addrs = args.addresses
-    size = human2bytes(args.size)
+    size = Converter.human2bytes(args.size)
     port = args.port
     bind_addr = args.bind
-    bufsize = human2bytes(args.bufsize)
+    bufsize = Converter.human2bytes(args.bufsize)
 
     return host_addrs, size, port, bind_addr, bufsize
 
 
-def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
+def __setup_socket(addr, port, bind_addr):
     # Create TCP socket
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
-        logging.exception("Could not create socket")
+        logger.exception("Could not create socket")
         raise
 
-    logging.info("Connecting to server %s on port %d", addr, port)
+    logger.info("Connecting to server %s on port %d", addr, port)
 
     if bind_addr:
         # Bind the interface for data receiving
@@ -81,7 +79,7 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
             # the server side also ready does so.
             sock.bind((bind_addr, 0))
         except socket.error:
-            logging.exception(
+            logger.exception(
                 "Unable to bind on the local address %s", bind_addr)
             sock.close()
             sock = None
@@ -91,12 +89,17 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
     try:
         sock.connect((addr, port))
     except socket.error:
-        logging.exception("Could not connect to the server %s", addr)
+        logger.exception("Could not connect to the server %s", addr)
         sock.close()
         sock = None
         raise
 
-    logging.info("Connection established. Receiving data ...")
+    logger.info("Connection established. Receiving data ...")
+    return sock
+
+
+def __run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
+    sock = __setup_socket(addr, port, bind_addr)
 
     left = size
     objs_size = 0
@@ -111,7 +114,7 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
                 break
 
             obj_s = len(bytes_obj)
-            logging.debug("Received %d bytes of data", obj_s)
+            logger.debug("Received %d bytes of data", obj_s)
             obj_pool.append(bytes_obj)
             left -= obj_s
             objs_size += obj_s
@@ -122,16 +125,16 @@ def run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
         t_end = dt.now().timestamp()
         dur = t_end - t_start
         recvd = size - left
-        logging.info("Received %d bytes of data in %s seconds \
+        logger.info("Received %d bytes of data in %s seconds \
 (bitrate: %s bit/s)",
-                     recvd, dur, recvd * 8 / dur)
+                    recvd, dur, recvd * 8 / dur)
         sock.close()
-        logging.info("Socket closed")
+        logger.info("Socket closed")
 
     return t_start, t_end, recvd
 
 
-def allot_size(size, num):
+def __allot_size(size, num):
     i_size = size // num
     left = size - i_size * num
 
@@ -145,16 +148,16 @@ def allot_size(size, num):
 
 
 def main():
-    host_addrs, size, port, bind_addr, bufsize = get_args()
-    logging.info("bufsize: %d bytes", bufsize)
+    host_addrs, size, port, bind_addr, bufsize = __get_args()
+    logger.info("bufsize: %d bytes", bufsize)
 
     num_servs = len(host_addrs)
 
-    p_sizes = allot_size(size, num_servs)
-    mem_limit_bs = human2bytes(MEM_LIMIT) // num_servs
+    p_sizes = __allot_size(size, num_servs)
+    mem_limit_bs = Converter.human2bytes('500MB') // num_servs
 
     with Pool(processes=num_servs) as pool:
-        futures = [pool.apply_async(run,
+        futures = [pool.apply_async(__run,
                                     (addr, p_sizes[idx], port, bind_addr,
                                      bufsize, mem_limit_bs))
                    for idx, addr in enumerate(host_addrs)]
@@ -163,14 +166,16 @@ def main():
     t_starts, t_ends, recvds = zip(*multi_results)
     total_dur = max(t_ends) - min(t_starts)
     total_recvd = sum(recvds)
-    logging.info("[SUMMARY] Total received %d bytes of data in %s seconds \
+    logger.info("[SUMMARY] Total received %d bytes of data in %s seconds \
 (bitrate: %s bit/s)",
-                 total_recvd, total_dur, total_recvd * 8 / total_dur)
+                total_recvd, total_dur, total_recvd * 8 / total_dur)
 
 
 if __name__ == "__main__":
     logging.basicConfig(
-        format='%(asctime)s - [%(levelname)s][PID=%(process)d] %(message)s',
+        format='%(asctime)s - %(name)s - \
+[%(levelname)s][PID=%(process)d] %(message)s',
         level=logging.INFO)
+    logger = logging.getLogger('client')  # pylint: disable=C0103
 
     main()

@@ -1,24 +1,38 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-UNITS = ['b', 'kb', 'mb', 'gb']
+import logging
+import re
 
 
-def human2bytes(size):
-    if '.' in size:
-        raise ValueError("Can't parse non-integer bufsize %r" % size)
+class Converter(object):
+    support_units = ['b', 'kb', 'mb', 'gb']
+    logger = logging.getLogger(__name__)
 
-    num = int(''.join(filter(str.isdigit, size)))
-    unit = ''.join(filter(str.isalpha, size)).strip().lower()
+    @classmethod
+    def human2bytes(cls, size):
+        if '.' in size:
+            cls.__log_and_exit(
+                ValueError("Can't parse non-integer bufsize %r" % size))
 
-    if not unit:
-        unit = 'b'
+        num_s = re.split(r'\D+', size)[0]
+        if not num_s:
+            cls.__log_and_exit(ValueError("Invalid bufsize %r" % size))
 
-    if not unit.endswith('b'):
-        unit += 'b'
+        unit = size[len(num_s):].lower()
+        num = int(num_s)
 
-    for u in UNITS:
-        if u == unit:
-            return num
-        num <<= 10
+        if not unit.endswith('b'):
+            unit += 'b'
 
-    raise ValueError("Invalid bufsize %r" % size)
+        for unt in cls.support_units:
+            if unt == unit:
+                return num
+            num <<= 10
+
+        cls.__log_and_exit(ValueError("Invalid bufsize %r" % size))
+
+    @classmethod
+    def __log_and_exit(cls, err):
+        cls.logger.error(str(err))
+        raise err
