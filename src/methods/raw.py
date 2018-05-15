@@ -5,11 +5,14 @@
 # https://stackoverflow.com/a/12173406
 from .iofilter import IOFilter
 
+import logging
 import typing
 
 
 class Raw(IOFilter):
     """Read the data without any filtering."""
+
+    logger = logging.getLogger(__name__)
 
     def read(self, size):
         while True:
@@ -21,15 +24,15 @@ class Raw(IOFilter):
             if bytes_obj:
                 return bytes_obj
 
-
-    @staticmethod
+    @classmethod
     def _create(
+            cls: typing.Type['Raw'],
             constr_param_names: typing.List[str],
             file_obj: typing.BinaryIO,
             extra_args_dict: typing.Dict[str, str]) -> 'Raw':
         if extra_args_dict:
             err = ValueError("Unknow method parameters: %s" % extra_args_dict)
-            Raw._log_and_exit(err)
+            cls._log_and_exit(err)
         return Raw(file_obj)
 
     @staticmethod

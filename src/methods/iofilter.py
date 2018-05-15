@@ -76,15 +76,18 @@ class IOFilter(abc.ABC):
             file_obj,
             extra_args_dict)
 
-    @staticmethod
+    @classmethod
     @abc.abstractmethod
     def _create(
+            cls: typing.Type['IOFilter'],
             constr_param_names: typing.List[str],
             file_obj: typing.BinaryIO,
             extra_args_dict: typing.Dict[str, str]) -> 'IOFilter':
         """Create specific class instance.
 
         Args:
+            cls (typing.Type['IOFilter']): The class itself. See the type hints
+                for the class itself on https://stackoverflow.com/a/44664064
             constr_param_names (typing.List[str]): The necessary constructor
                 parameters starting from the third one.
             file_obj (typing.BinaryIO): The first parameter in the constructor.
@@ -98,9 +101,11 @@ class IOFilter(abc.ABC):
 
         """
 
-    @staticmethod
-    def _log_and_exit(err: Exception) -> None:
-        logging.error(str(err))
+    @classmethod
+    def _log_and_exit(
+            cls: typing.Type['IOFilter'],
+            err: Exception) -> None:
+        cls.logger.error(str(err))
         raise err
 
     @staticmethod
