@@ -63,11 +63,6 @@ def __create_start_parser(subparsers):
               (default: 4096) ([BKMG])',
         default='4K',
         required=False)
-    start_parser.add_argument(
-        '-d', '--debug', action='store_true',
-        help='Show debug messages',
-        default=False,
-        required=False)
 
     # Since socket.sendfile() performs the data reading and sending within
     # the kernel space, there is no user space function can inject into
@@ -85,6 +80,13 @@ def __create_start_parser(subparsers):
     group.add_argument(
         '-z', '--zerocopy', action='store_true',
         help='Use "socket.sendfile()" instead of "socket.send()".',
+        required=False)
+
+    # Add the debug option to the last
+    start_parser.add_argument(
+        '-d', '--debug', action='store_true',
+        help='Show debug messages',
+        default=False,
         required=False)
 
 
