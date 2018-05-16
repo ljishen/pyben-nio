@@ -45,8 +45,16 @@ def __get_args():
               (default: 4096) ([BKMG])',
         default='4K',
         required=False)
+    parser.add_argument(
+        '-d', '--debug', action='store_true',
+        help='Show debug messages',
+        default=False,
+        required=False)
 
     args = parser.parse_args()
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
 
     host_addrs = args.addresses
     size = Converter.human2bytes(args.size)

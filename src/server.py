@@ -62,6 +62,11 @@ def __create_start_parser(subparsers):
               (default: 4096) ([BKMG])',
         default='4K',
         required=False)
+    start_parser.add_argument(
+        '-d', '--debug', action='store_true',
+        help='Show debug messages',
+        default=False,
+        required=False)
 
     # Since socket.sendfile() performs the data reading and sending within
     # the kernel space, there is no user space function can inject into
@@ -86,7 +91,7 @@ def __create_desc_parser(subparsers):
     desc_parser = subparsers.add_parser(DESC_PARSER_NAME)
     desc_parser.add_argument(
         '-m', '--method', type=str,
-        help='Show description  message for specific data filtering method',
+        help='Show description messages for specific data filtering method',
         choices=__list_methods(),
         required=START_PARSER_NAME not in sys.argv)
 
@@ -107,6 +112,9 @@ def __get_args():
     if args.subparser_name == DESC_PARSER_NAME:
         __get_classobj_of(args.method).print_desc()
         sys.exit()
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
 
     bind_addr = args.bind
     size = Converter.human2bytes(args.size)
