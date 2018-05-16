@@ -94,6 +94,11 @@ def __create_desc_parser(subparsers):
         help='Show description messages for specific data filtering method',
         choices=__list_methods(),
         required=START_PARSER_NAME not in sys.argv)
+    desc_parser.add_argument(
+        '-d', '--debug', action='store_true',
+        help='Show debug messages',
+        default=False,
+        required=False)
 
 
 def __get_args():
@@ -109,12 +114,12 @@ def __get_args():
 
     args = parser.parse_args()
 
+    if not args.debug:
+        logging.disable(logging.DEBUG)
+
     if args.subparser_name == DESC_PARSER_NAME:
         __get_classobj_of(args.method).print_desc()
         sys.exit()
-
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
 
     bind_addr = args.bind
     size = Converter.human2bytes(args.size)
@@ -257,7 +262,7 @@ Sending data ...", client_addr)
 if __name__ == "__main__":
     logging.basicConfig(
         format='%(asctime)s | %(name)-16s | %(levelname)-8s | %(message)s',
-        level=logging.INFO)
+        level=logging.DEBUG)
     logger = logging.getLogger('server')  # pylint: disable=C0103
 
     main()

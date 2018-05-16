@@ -53,8 +53,8 @@ def __get_args():
 
     args = parser.parse_args()
 
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
+    if not args.debug:
+        logging.disable(logging.DEBUG)
 
     host_addrs = args.addresses
     size = Converter.human2bytes(args.size)
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         format='%(asctime)s | %(name)s | \
 %(levelname)-8s | PID=%(process)d | %(message)s',
-        level=logging.INFO)
+        level=logging.DEBUG)
     logger = logging.getLogger('client')  # pylint: disable=C0103
 
     main()

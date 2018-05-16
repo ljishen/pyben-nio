@@ -6,6 +6,8 @@ import logging
 import re
 import typing
 
+from inspect import getfullargspec
+
 
 class IOFilter(abc.ABC):
     """Abstrct base class of all the methods of how to read data from file.
@@ -110,13 +112,31 @@ class IOFilter(abc.ABC):
     @classmethod
     def print_desc(cls: typing.Type['IOFilter']) -> None:
         """Print information about method initialization."""
-        print('-' * 80)
+        separator = '-' * 79
+        print(separator)
         print('[MODULE] ' + cls.__module__)
-        print('-' * 80)
+        print(separator)
+
         print('[DESC]   ' + str(cls.__doc__))
 
         method_params = cls._get_method_params()
-        if method_params:
-            print('[PARAMS] Extra method parameter', method_params)
+        name2rettypes = {}  # type: typing.Dict[str, typing.Union[str, int]]
+
+        for param_name, func in method_params.items():
+            try:
+                return_type = getfullargspec(func).annotations['return']
+            except (KeyError, TypeError):
+                cls.logger.debug(
+                    "Fallback to show the type of function '%s' because can't find \
+the return type of it", func)
+                return_type = func
+                pass
+
+            name2rettypes[param_name] = return_type
+
+        if name2rettypes:
+            print('[PARAMS] Extra method parameter', name2rettypes)
         else:
             print('[PARAMS] Extra method parameter is not required.')
+
+        print(separator)
