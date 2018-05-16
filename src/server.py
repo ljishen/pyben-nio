@@ -13,6 +13,7 @@ import tempfile
 import methods
 
 from converter import Converter
+from version import MyVersionAction
 from paramparser import ParameterParser
 
 
@@ -102,8 +103,13 @@ def __create_desc_parser(subparsers):
 
 
 def __get_args():
-    parser = ParameterParser(
-        description='Simple network socket server.')
+    prog_desc = 'Simple network socket server with customized read \
+workload support.'
+
+    parser = ParameterParser(description=prog_desc)
+    MyVersionAction.set_prog_desc(prog_desc)
+    parser.add_argument('-v', '--version', action=MyVersionAction,
+                        version='%(prog)s version 1.1')
 
     subparsers = parser.add_subparsers(
         dest='subparser_name',
@@ -119,7 +125,7 @@ def __get_args():
 
     if args.subparser_name == DESC_PARSER_NAME:
         __get_classobj_of(args.method).print_desc()
-        sys.exit()
+        parser.exit()
 
     bind_addr = args.bind
     size = Converter.human2bytes(args.size)

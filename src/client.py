@@ -9,11 +9,13 @@ import logging
 import socket
 
 from converter import Converter
+from version import MyVersionAction
 
 
 def __get_args():
+    prog_desc = 'Simple network socket client.'
     parser = argparse.ArgumentParser(
-        description='Simple network socket client.',
+        description=prog_desc,
         epilog='[BKMG] indicates options that support a \
                 B/K/M/G (b/kb/mb/gb) suffix for \
                 byte, kilobyte, megabyte, or gigabyte')
@@ -50,6 +52,10 @@ def __get_args():
         help='Show debug messages',
         default=False,
         required=False)
+
+    MyVersionAction.set_prog_desc(prog_desc)
+    parser.add_argument('-v', '--version', action=MyVersionAction,
+                        version='%(prog)s version 1.0')
 
     args = parser.parse_args()
 

@@ -6,7 +6,7 @@ if [ "$#" -lt 2 ] || ([ "$1" != "--client" ] && [ "$1" != "--server" ]); then
     cat <<-ENDOFMESSAGE
 Usage: ./run [--client|server] [OPTIONS]
 
-Simple network socket benchmark.
+Simple network socket benchmark with customized read workload support.
 
 optional arguments:
   -h, --help            show this help message and exit

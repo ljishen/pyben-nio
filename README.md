@@ -1,6 +1,6 @@
 # Pyben-nio
 
-Simple Python Network Socket Benchmark.
+Simple Python Network Socket Benchmark with Customized Read Workload Support.
 
 
 ## Supported Architectures
@@ -20,26 +20,10 @@ $ fallocate -l 1g data_file
 $ docker run --rm -ti --network host \
     -v "$(pwd)"/data_file:/root/data_file \
     ljishen/pyben-nio \
-    --server -b localhost -s 1g -f /root/data_file -z
+    start --server -b localhost -s 1g -f /root/data_file -z
 
 # Start the socket client
 $ docker run --rm -ti --network host ljishen/pyben-nio --client -s 1g -a localhost
-```
-
-#### Print General Help Message
-```bash
-$ docker run --rm ljishen/pyben-nio --help
-Usage: ./run [--client|server] [OPTIONS]
-
-Simple network socket benchmark.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --client              Run in the client mode
-  --server              Run in the server mode
-
-For detail options for the respective mode, run
-./run [--client|server] --help
 ```
 
 #### Print Socket Server Help Message
