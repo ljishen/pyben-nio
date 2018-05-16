@@ -9,8 +9,13 @@ Simple Python Network Socket Benchmark with Customized Read Workload Support.
 - arm64v8
 
 
-## Usage
+## Version
 
+- server: `1.1`
+- client: `1.0`
+
+
+## Usage
 
 ```bash
 # Create data_file to be used by the server
