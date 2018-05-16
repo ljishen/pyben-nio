@@ -24,7 +24,7 @@ class Raw(IOFilter):
             if bytes_obj:
                 return bytes_obj
 
-    @staticmethod
-    def _get_method_params() -> typing.Dict[
+    @classmethod
+    def _get_method_params(cls: typing.Type['Raw']) -> typing.Dict[
             str, typing.Callable[[str], typing.Union[str, int]]]:
         return {}

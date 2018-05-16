@@ -10,7 +10,7 @@ import typing
 
 
 class Linspace(IOFilter):
-    """Read the data without any filtering."""
+    """Read evenly spaced bytes from the file."""
 
     logger = logging.getLogger(__name__)
 
@@ -24,7 +24,18 @@ class Linspace(IOFilter):
             if bytes_obj:
                 return bytes_obj
 
-    @staticmethod
-    def _get_method_params() -> typing.Dict[
+    @classmethod
+    def _get_method_params(
+            cls: typing.Type['Linspace']) -> typing.Dict[
             str, typing.Callable[[str], typing.Union[str, int]]]:
-        return {'step': int}
+        return {'step': cls.convert}
+
+    @classmethod
+    def convert(
+            cls: typing.Type['IOFilter'],
+            step: str) -> int:
+        res = int(step)
+        if res < 1:
+            err = ValueError("parameter 'step' must be >= 1")
+            cls._log_and_exit(err)
+        return res

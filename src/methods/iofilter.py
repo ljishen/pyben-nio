@@ -88,9 +88,9 @@ class IOFilter(abc.ABC):
 
         return cls(file_obj, **kwargs)
 
-    @staticmethod
+    @classmethod
     @abc.abstractmethod
-    def _get_method_params() -> typing.Dict[
+    def _get_method_params(cls: typing.Type['IOFilter']) -> typing.Dict[
             str, typing.Callable[[str], typing.Union[str, int]]]:
         """Return required method parameters in dictionary.
 

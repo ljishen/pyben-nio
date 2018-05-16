@@ -71,7 +71,8 @@ def __create_start_parser(subparsers):
     start_parser.set_special_dest('method')
     group.add_argument(
         '-m', '--method', type=str,
-        help='The data filtering method to apply on reading from the file',
+        help='The data filtering method to apply on reading from the file \
+              (default: raw)',
         choices=__list_methods(),
         default='raw',
         required=False)
