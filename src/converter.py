@@ -13,11 +13,15 @@ class Converter(object):
     def human2bytes(cls, size):
         if '.' in size:
             cls.__log_and_exit(
-                ValueError("Can't parse non-integer bufsize %r" % size))
+                ValueError("Can't parse non-integer size %r" % size))
+
+        if '-' in size:
+            cls.__log_and_exit(
+                ValueError("Input size %r is not positive" % size))
 
         num_s = re.split(r'\D+', size)[0]
         if not num_s:
-            cls.__log_and_exit(ValueError("Invalid bufsize %r" % size))
+            cls.__log_and_exit(ValueError("Invalid input size %r" % size))
 
         unit = size[len(num_s):].lower()
         num = int(num_s)
@@ -30,7 +34,7 @@ class Converter(object):
                 return num
             num <<= 10
 
-        cls.__log_and_exit(ValueError("Invalid bufsize %r" % size))
+        cls.__log_and_exit(ValueError("Invalid input size %r" % size))
 
     @classmethod
     def __log_and_exit(cls, err):
