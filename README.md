@@ -16,22 +16,25 @@ Simple Python Network Socket Benchmark with Customized Read Workload Support.
 # Create data_file to be used by the server
 $ fallocate -l 1g data_file
 
-# Start the socket server
+# Start the socket server with data filtering method "linspace"
 $ docker run --rm -ti --network host \
     -v "$(pwd)"/data_file:/root/data_file \
     ljishen/pyben-nio \
-    start --server -b localhost -s 1g -f /root/data_file -z
+    --server start \
+    -b localhost -s 1g -f /root/data_file -m "linspace step=2"
 
 # Start the socket client
-$ docker run --rm -ti --network host ljishen/pyben-nio --client -s 1g -a localhost
+$ docker run --rm -ti --network host \
+    ljishen/pyben-nio \
+    --client \
+    -a localhost -s 1g
 ```
 
 #### Print Socket Server Help Message
 ```bash
-$ docker run --rm ljishen/pyben-nio --server --help
-usage: server.py [-h] -b BIND -s SIZE [-p PORT] [-f FN] [-l BS] [-z]
-
-Simple network socket server.
+$ docker run --rm ljishen/pyben-nio --server start --help
+usage: server.py start [-h] -b BIND -s SIZE [-p PORT] [-f FN] [-l BS]
+                       [-m {linspace,raw} | -z] [-d]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -42,16 +45,38 @@ optional arguments:
                         of generating a temporary file with random data
   -l BS, --bufsize BS   The maximum amount of data in bytes to be sent at once
                         (default: 4096) ([BKMG])
+  -m {linspace,raw}, --method {linspace,raw}
+                        The data filtering method to apply on reading from the
+                        file (default: raw)
   -z, --zerocopy        Use "socket.sendfile()" instead of "socket.send()".
+  -d, --debug           Show debug messages
 
 [BKMG] indicates options that support a B/K/M/G (b/kb/mb/gb) suffix for byte,
 kilobyte, megabyte, or gigabyte
+```
+
+#### Print description of data filtering method `linspace`
+```bash
+$ docker run --rm ljishen/pyben-nio --server desc -m linspace
+-------------------------------------------------------------------------------
+[MODULE] methods.linspace
+-------------------------------------------------------------------------------
+[DESC]   Read evenly spaced bytes from the file.
+
+    The space is defined by the parameter step, which is equals to the
+    difference between the index of the current byte and the index of the last
+    byte in the source bytes sequence.
+
+
+[PARAMS] Extra method parameter {'step': <class 'int'>}
+-------------------------------------------------------------------------------
 ```
 
 #### Print Socket Client Help Message
 ```bash
 $ docker run --rm ljishen/pyben-nio --client --help
 usage: client.py [-h] -a ADDRS [ADDRS ...] -s SIZE [-p PORT] [-b BIND] [-l BS]
+                 [-d] [-v]
 
 Simple network socket client.
 
@@ -69,6 +94,8 @@ optional arguments:
                         connect(2))
   -l BS, --bufsize BS   The maximum amount of data in bytes to be received at
                         once (default: 4096) ([BKMG])
+  -d, --debug           Show debug messages
+  -v, --version         show program's version number and exit
 
 [BKMG] indicates options that support a B/K/M/G (b/kb/mb/gb) suffix for byte,
 kilobyte, megabyte, or gigabyte
