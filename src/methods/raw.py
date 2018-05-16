@@ -14,7 +14,9 @@ class Raw(IOFilter):
 
     logger = logging.getLogger(__name__)
 
-    def read(self, size: int=-1) -> bytes:
+    def read(self, size: int) -> bytes:
+        super().read(size)
+
         while True:
             bytes_obj = self.file_obj.read(size)
 

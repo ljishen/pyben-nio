@@ -26,17 +26,17 @@ class IOFilter(abc.ABC):
         self.kwargs = kwargs
 
     @abc.abstractmethod
-    def read(self, size: int=-1) -> bytes:
+    def read(self, size: int) -> bytes:
         """Read and return up to size bytes.
 
         Args:
-            size (int): If the argument is omitted, None, or negative, data is
-                read and returned until EOF is reached. An empty bytes object
-                is returned if the stream is already at EOF. If the argument is
-                positive, multiple raw reads may be issued to satisfy the byte
-                count (unless EOF is reached first).
+            size (int): It must be greater than 0. Note that multiple
+                underlying reads may be issued to satisfy the byte count.
 
         """
+        if size is None or size <= 0:
+            err = ValueError("read size must be > 0")
+            self._log_and_exit(err)
 
     @classmethod
     def create(
@@ -110,10 +110,13 @@ class IOFilter(abc.ABC):
     @classmethod
     def print_desc(cls: typing.Type['IOFilter']) -> None:
         """Print information about method initialization."""
-        print('Module: ' + cls.__module__)
+        print('-' * 80)
+        print('[MODULE] ' + cls.__module__)
+        print('-' * 80)
+        print('[DESC]   ' + str(cls.__doc__))
 
         method_params = cls._get_method_params()
         if method_params:
-            print('\tExtra method parameter', method_params)
+            print('[PARAMS] Extra method parameter', method_params)
         else:
-            print('\tExtra method parameter is not required.')
+            print('[PARAMS] Extra method parameter is not required.')
