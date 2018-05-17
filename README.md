@@ -2,6 +2,8 @@
 
 Simple Python Network Socket Benchmark with Customized Read Workload Support.
 
+![screenshot](https://user-images.githubusercontent.com/468515/40152383-d759197a-5939-11e8-9547-e2395e9062d3.gif)
+
 
 ## Supported Architectures
 
@@ -115,7 +117,11 @@ kilobyte, megabyte, or gigabyte
 docker manifest create ljishen/pyben-nio ljishen/pyben-nio:amd64 ljishen/pyben-nio:arm64v8
 docker manifest annotate ljishen/pyben-nio ljishen/pyben-nio:amd64 --os linux --arch amd64
 docker manifest annotate ljishen/pyben-nio ljishen/pyben-nio:arm64v8 --os linux --arch arm64 --variant v8
-docker manifest push ljishen/pyben-nio
+
+# purge the local manifest after push so that I can
+# upgrade the manifest by creating a new one next time.
+# https://github.com/docker/for-win/issues/1770
+docker manifest push --purge ljishen/pyben-nio
 ```
 
 References: [Create and use multi-architecture docker images](https://developer.ibm.com/linuxonpower/2017/07/27/create-multi-architecture-docker-image/)
