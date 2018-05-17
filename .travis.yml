@@ -8,15 +8,19 @@ language: ruby
 
 env:
   global:
-    - IMAGE_NAME=ljishen/pyben-nio:arm64v8
+    - IMAGE_TAG=arm64v8
+    - IMAGE_NAME=ljishen/pyben-nio:${IMAGE_TAG}
 
 script:
+  # Generate the Dockerfile-${IMAGE_TAG}
+  - bash update.sh
+
   # Configure binfmt-support on the Docker host
   # See https://github.com/multiarch/alpine
   - docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
   # Build image
-  - docker build -t "${IMAGE_NAME}" . -f arm64v8/Dockerfile
+  - docker build -t "${IMAGE_NAME}" . -f Dockerfile-${IMAGE_TAG}
 
 before_deploy:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
