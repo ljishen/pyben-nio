@@ -7,8 +7,7 @@ Simple Python Network Socket Benchmark with Customized Read Workload Support.
 
 ## Supported Architectures
 
-- amd64
-- arm64v8
+[`amd64`](amd64/Dockerfile), [`arm64v8`](arm64v8/Dockerfile)
 
 
 ## Version
