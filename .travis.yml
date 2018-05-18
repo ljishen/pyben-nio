@@ -20,7 +20,7 @@ script:
   - docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
   # Build image
-  - docker build -t "${IMAGE_NAME}" . -f Dockerfile-${IMAGE_TAG}
+  - docker build --cache-from "${IMAGE_NAME}" -t "${IMAGE_NAME}" . -f Dockerfile-${IMAGE_TAG}
 
 before_deploy:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
