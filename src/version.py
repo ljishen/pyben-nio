@@ -8,6 +8,12 @@ import sys
 class MyVersionAction(argparse._VersionAction):
     """Customized action class for version print."""
 
+    prog_logo = '''
+╔═╗┬ ┬┌┐ ┌─┐┌┐┌   ┌┐┌┬┌─┐
+╠═╝└┬┘├┴┐├┤ │││───│││││ │
+╩   ┴ └─┘└─┘┘└┘   ┘└┘┴└─┘
+'''
+
     prog_desc = ''
 
     @classmethod
@@ -22,7 +28,8 @@ class MyVersionAction(argparse._VersionAction):
         formatter = parser._get_formatter()
         formatter.add_text(version)
         parser._print_message(
-            self.prog_desc +
-            "\nOpen Source License: MIT\n\n" +
+            self.prog_logo + "\n" +
+            self.prog_desc + "\n" +
+            "Open Source License: MIT\n\n" +
             formatter.format_help(), sys.stdout)
         parser.exit()
