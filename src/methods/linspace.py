@@ -54,9 +54,9 @@ class Linspace(IOFilter):
         return bytes(res)
 
     @classmethod
-    def _get_method_params(
-            cls: typing.Type['Linspace']) -> typing.Dict[
-            str, typing.Callable[[str], typing.Union[str, int]]]:
+    def _get_method_params(cls: typing.Type['Linspace']) -> typing.Dict[
+            str,
+            typing.Callable[[str], typing.Union[str, int, typing.Callable]]]:
         return {cls.PARAM_STEP: cls.convert}
 
     @classmethod

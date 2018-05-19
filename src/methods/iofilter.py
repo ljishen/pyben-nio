@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from inspect import getfullargspec
+
 import abc
 import logging
 import re
 import typing
-
-from inspect import getfullargspec
 
 
 class IOFilter(abc.ABC):
@@ -37,7 +37,7 @@ class IOFilter(abc.ABC):
 
         """
         if size is None or size <= 0:
-            err = ValueError("read size must be > 0")
+            err = ValueError("Read size must be > 0")
             self._log_and_exit(err)
 
     @classmethod
@@ -67,21 +67,21 @@ class IOFilter(abc.ABC):
                 cls.logger.error(str(err))
                 raise err
 
-            extra_args_dict[pair[0]] = pair[1]
+            extra_args_dict[pair[0]] = pair[1].strip()
 
         cls.logger.info("[method: %s] [input parameters: %s]",
                         cls.__module__, extra_args_dict)
 
         method_params = cls._get_method_params()
         kwargs = {}  # type: typing.Dict[str, typing.Union[str, int]]
-        for n, f in method_params.items():
+        for n, cf in method_params.items():
             input_v = extra_args_dict.pop(n, '')
             if not input_v:
                 err = ValueError(
-                    "Required method parameter '%s' not found." % n)
+                    "Required method parameter '%s' not found" % n)
                 cls._log_and_exit(err)
 
-            kwargs[n] = f(input_v)
+            kwargs[n] = cf(input_v)
 
         if extra_args_dict:
             err = ValueError(
@@ -93,7 +93,8 @@ class IOFilter(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def _get_method_params(cls: typing.Type['IOFilter']) -> typing.Dict[
-            str, typing.Callable[[str], typing.Union[str, int]]]:
+            str,
+            typing.Callable[[str], typing.Union[str, int, typing.Callable]]]:
         """Return required method parameters in dictionary.
 
         For each item in the return dictionary, the key is the name of the

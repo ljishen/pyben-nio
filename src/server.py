@@ -69,11 +69,11 @@ def __create_start_parser(subparsers):
     # during this process. Therefore the zerocopy option conflicts with the
     # method option.
     group = start_parser.add_mutually_exclusive_group()
-    start_parser.set_special_dest('method')
+    start_parser.set_multi_value_dest('method')
     group.add_argument(
         '-m', '--method', type=str,
         help='The data filtering method to apply on reading from the file \
-              (default: raw)',
+              (default: raw). Use semicolon (;) to separate method parameters',
         choices=__list_methods(),
         default='raw',
         required=False)
@@ -134,7 +134,7 @@ workload support.'
     port = args.port
     filename = args.filename
     bufsize = Converter.human2bytes(args.bufsize)
-    method = args.method.split()
+    method = parser.split_multi_value_params(args.method)
     zerocopy = args.zerocopy
 
     return bind_addr, size, port, filename, bufsize, method, zerocopy
@@ -254,6 +254,9 @@ Sending data ...", client_addr)
             # figure out the number of bytes which were sent.
             # https://docs.python.org/3/library/socket.html#socket.socket.sendfile
             left -= file_obj.tell()
+    except ValueError:
+        logger.exception(
+            "Fail to read data from buffered stream %r" % file_obj.name)
     finally:
         dur = dt.now().timestamp() - t_start
         sent = size - left

@@ -28,12 +28,12 @@ Simple Python Network Socket Benchmark with Customized Read Workload Support.
 # Create data_file to be used by the server
 $ fallocate -l 1g data_file
 
-# Start the socket server with data filtering method "linspace"
+# Start the socket server with data filtering method "match"
 $ docker run --rm -ti --network host \
     -v "$(pwd)"/data_file:/root/data_file \
     ljishen/pyben-nio \
     --server start \
-    -b localhost -s 1g -f /root/data_file -m "linspace step=2"
+    -b localhost -s 1g -f /root/data_file -m "match; func=lambda v: v % 2 == 0"
 
 # Start the socket client
 $ docker run --rm -ti --network host \
@@ -46,7 +46,7 @@ $ docker run --rm -ti --network host \
 ```bash
 $ docker run --rm ljishen/pyben-nio --server start --help
 usage: server.py start [-h] -b BIND -s SIZE [-p PORT] [-f FN] [-l BS]
-                       [-m {linspace,raw} | -z] [-d]
+                       [-m {linspace,match,raw} | -z] [-d]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -57,9 +57,10 @@ optional arguments:
                         of generating a temporary file with random data
   -l BS, --bufsize BS   The maximum amount of data in bytes to be sent at once
                         (default: 4096) ([BKMG])
-  -m {linspace,raw}, --method {linspace,raw}
+  -m {linspace,match,raw}, --method {linspace,match,raw}
                         The data filtering method to apply on reading from the
-                        file (default: raw)
+                        file (default: raw). Use semicolon (;) to separate
+                        method parameters
   -z, --zerocopy        Use "socket.sendfile()" instead of "socket.send()".
   -d, --debug           Show debug messages
 
@@ -67,20 +68,25 @@ optional arguments:
 kilobyte, megabyte, or gigabyte
 ```
 
-#### Print description of data filtering method `linspace`
+#### Print description of data filtering method `match`
 ```bash
-$ docker run --rm ljishen/pyben-nio --server desc -m linspace
+$ docker run --rm ljishen/pyben-nio --server desc -m match
 -------------------------------------------------------------------------------
-[MODULE] methods.linspace
+[MODULE] methods.match
 -------------------------------------------------------------------------------
-[DESC]   Read evenly spaced bytes from the file.
+[DESC]   Read the bytes that match the function check.
 
-    The space is defined by the parameter step, which is equals to the
-    difference between the index of the current byte and the index of the last
-    byte in the source bytes sequence.
+    The parameter func defines the function check that whether the read
+    operation should return the byte. The checking function should only accpet
+    a single argument as an int value representing the byte and return an
+    object that subsequently will be used in bytes filtering based on its truth
+    value.
+
+    Also see truth value testing in Python 3:
+    https://docs.python.org/3/library/stdtypes.html#truth-value-testing
 
 
-[PARAMS] Extra method parameter {'step': <class 'int'>}
+[PARAMS] Extra method parameter {'func': typing.Callable[[int], object]}
 -------------------------------------------------------------------------------
 ```
 

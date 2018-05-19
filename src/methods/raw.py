@@ -28,5 +28,6 @@ class Raw(IOFilter):
 
     @classmethod
     def _get_method_params(cls: typing.Type['Raw']) -> typing.Dict[
-            str, typing.Callable[[str], typing.Union[str, int]]]:
+            str,
+            typing.Callable[[str], typing.Union[str, int, typing.Callable]]]:
         return {}
