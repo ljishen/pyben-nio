@@ -11,6 +11,7 @@ class Converter(object):
 
     @classmethod
     def human2bytes(cls, size):
+        """Convert the human readable size to the size in bytes."""
         if '.' in size:
             cls.__log_and_exit(
                 ValueError("Can't parse non-integer size %r" % size))
