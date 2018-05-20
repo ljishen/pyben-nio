@@ -122,8 +122,8 @@ def __run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
     t_start = dt.now().timestamp()
     try:
         while left > 0:
-            bys = min(bufsize, left)
-            bytes_obj = sock.recv(bys)
+            num_bys = min(bufsize, left)
+            bytes_obj = sock.recv(num_bys)
             if not bytes_obj:
                 break
 

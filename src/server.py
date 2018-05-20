@@ -2,51 +2,26 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime as dt
-from importlib import import_module
-from pkgutil import walk_packages
 
 import logging
 import os
 import socket
-import sys
 import tempfile
-import methods
 
 from converter import Converter
-from version import MyVersionAction
 from paramparser import ParameterParser
+from util import Util
 
 
-def __list_methods():
-    return [name for _, name, _ in walk_packages(methods.__path__)
-            if name != 'iofilter']
-
-
-def __get_classobj_of(method: str):
-    return getattr(
-        import_module('.' + method, methods.__package__),
-        method.capitalize())
-
-
-START_PARSER_NAME = 'start'
-DESC_PARSER_NAME = 'desc'
-
-
-def __create_start_parser(subparsers):
-    start_parser = subparsers.add_parser(
-        START_PARSER_NAME,
-        epilog='[BKMG] indicates options that support a \
-                B/K/M/G (b/kb/mb/gb) suffix for \
-                byte, kilobyte, megabyte, or gigabyte')
-
+def __populate_start_parser(start_parser):
     start_parser.add_argument(
         '-b', '--bind', type=str,
         help='Bind to host, one of this machine\'s outbound interface',
-        required=DESC_PARSER_NAME not in sys.argv)
+        required=start_parser.is_start_in_argv_list())
     start_parser.add_argument(
         '-s', '--size', type=str,
         help='The total size of raw data I/O ([BKMG])',
-        required=DESC_PARSER_NAME not in sys.argv)
+        required=start_parser.is_start_in_argv_list())
     start_parser.add_argument(
         '-p', '--port', type=int,
         help='The port for the server to listen on (default: 8881)',
@@ -74,7 +49,7 @@ def __create_start_parser(subparsers):
         '-m', '--method', type=str,
         help='The data filtering method to apply on reading from the file \
               (default: raw). Use semicolon (;) to separate method parameters',
-        choices=__list_methods(),
+        choices=Util.list_methods(),
         default='raw',
         required=False)
     group.add_argument(
@@ -82,60 +57,30 @@ def __create_start_parser(subparsers):
         help='Use "socket.sendfile()" instead of "socket.send()".',
         required=False)
 
-    # Add the debug option to the last
-    start_parser.add_argument(
-        '-d', '--debug', action='store_true',
-        help='Show debug messages',
-        default=False,
-        required=False)
-
-
-def __create_desc_parser(subparsers):
-    desc_parser = subparsers.add_parser(DESC_PARSER_NAME)
-    desc_parser.add_argument(
-        '-m', '--method', type=str,
-        help='Show description messages for specific data filtering method',
-        choices=__list_methods(),
-        required=START_PARSER_NAME not in sys.argv)
-    desc_parser.add_argument(
-        '-d', '--debug', action='store_true',
-        help='Show debug messages',
-        default=False,
-        required=False)
-
 
 def __get_args():
-    prog_desc = 'Simple network socket server with customized read \
-workload support.'
+    prog_desc = 'Simple network socket server with customized workload \
+support.'
 
-    parser = ParameterParser(description=prog_desc)
-    MyVersionAction.set_prog_desc(prog_desc)
-    parser.add_argument('-v', '--version', action=MyVersionAction,
-                        version='%(prog)s version 1.1')
+    parser, start_parser = ParameterParser.create(description=prog_desc)
+    __populate_start_parser(start_parser)
 
-    subparsers = parser.add_subparsers(
-        dest='subparser_name',
-        help='Select either command to show more messages')
+    arg_attrs_namespace = parser.get_parsed_namespace()
 
-    __create_start_parser(subparsers)
-    __create_desc_parser(subparsers)
-
-    args = parser.parse_args()
-
-    if not args.debug:
+    if not arg_attrs_namespace.debug:
         logging.disable(logging.DEBUG)
 
-    if args.subparser_name == DESC_PARSER_NAME:
-        __get_classobj_of(args.method).print_desc()
+    if parser.is_desc_parser_invoked():
+        Util.get_classobj_of(arg_attrs_namespace.method).print_desc()
         parser.exit()
 
-    bind_addr = args.bind
-    size = Converter.human2bytes(args.size)
-    port = args.port
-    filename = args.filename
-    bufsize = Converter.human2bytes(args.bufsize)
-    method = parser.split_multi_value_params(args.method)
-    zerocopy = args.zerocopy
+    bind_addr = arg_attrs_namespace.bind
+    size = Converter.human2bytes(arg_attrs_namespace.size)
+    port = arg_attrs_namespace.port
+    filename = arg_attrs_namespace.filename
+    bufsize = Converter.human2bytes(arg_attrs_namespace.bufsize)
+    method = parser.split_multi_value_param(arg_attrs_namespace.method)
+    zerocopy = arg_attrs_namespace.zerocopy
 
     return bind_addr, size, port, filename, bufsize, method, zerocopy
 
@@ -208,7 +153,7 @@ def main():
         raise RuntimeError("Invalid file size", fsize)
 
     if not zerocopy:
-        classobj = __get_classobj_of(method[0])
+        classobj = Util.get_classobj_of(method[0])
         iofilter = classobj.create(file_obj, extra_args=method[1:])
 
     logger.info("Ready to send %d bytes using data file size of %d bytes",
@@ -236,6 +181,8 @@ Sending data ...", client_addr)
         while left > 0:
             if zerocopy:
                 bys = min(left, fsize)
+
+                # pylint: disable=no-member
                 client_s.sendfile(file_obj, count=bys)
                 logger.debug("Sent %d bytes of data", bys)
                 left -= bys
@@ -243,9 +190,12 @@ Sending data ...", client_addr)
                 bys = min(left, bufsize)
                 bytes_obj = iofilter.read(bys)
 
+                # pylint: disable=no-member
                 sent = client_s.send(bytes_obj)
                 left -= sent
                 logger.debug("Sent %d bytes of data", sent)
+
+    # pylint: disable=undefined-variable
     except (ConnectionResetError, BrokenPipeError):
         logger.warn("Connection closed by client")
         if zerocopy:
@@ -256,7 +206,7 @@ Sending data ...", client_addr)
             left -= file_obj.tell()
     except ValueError:
         logger.exception(
-            "Fail to read data from buffered stream %r" % file_obj.name)
+            "Fail to read data from buffered stream %r", file_obj.name)
     finally:
         dur = dt.now().timestamp() - t_start
         sent = size - left
