@@ -41,8 +41,8 @@ def __populate_start_parser(start_parser):
 
     # Since socket.sendfile() performs the data reading and sending within
     # the kernel space, there is no user space function can inject into
-    # during this process. Therefore the zerocopy option conflicts with the
-    # method option.
+    # during this process. Therefore the zerocopy option is conflicting with
+    # the method option.
     group = start_parser.add_mutually_exclusive_group()
     start_parser.set_multi_value_dest('method')
     group.add_argument(
@@ -59,20 +59,13 @@ def __populate_start_parser(start_parser):
 
 
 def __get_args():
-    prog_desc = 'Simple network socket server with customized workload \
-support.'
+    prog_desc = 'Simple network socket server with customized \
+workload support.'
 
     parser, start_parser = ParameterParser.create(description=prog_desc)
     __populate_start_parser(start_parser)
 
-    arg_attrs_namespace = parser.get_parsed_namespace()
-
-    if not arg_attrs_namespace.debug:
-        logging.disable(logging.DEBUG)
-
-    if parser.is_desc_parser_invoked():
-        Util.get_classobj_of(arg_attrs_namespace.method).print_desc()
-        parser.exit()
+    arg_attrs_namespace = parser.get_parsed_start_namespace()
 
     bind_addr = arg_attrs_namespace.bind
     size = Converter.human2bytes(arg_attrs_namespace.size)

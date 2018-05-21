@@ -3,6 +3,7 @@
 
 from argparse import ArgumentParser
 
+import logging
 import re
 import sys
 
@@ -101,32 +102,26 @@ class ParameterParser(ArgumentParser):
         """Check if the START_PARSER_NAME in the command line argument list."""
         return cls._START_PARSER_NAME in sys.argv
 
-    def get_parsed_namespace(self):
-        """Get the populated namespace after converting argument strings.
+    def get_parsed_start_namespace(self):
+        """Get the populated namespace from the start_parser.
 
         Returns:
             Namespace: The namesapce that encapsulates all argument
-                attributes.
+                attributes from the start_parser.
 
             See the description of the return type Namespace:
                 https://docs.python.org/3/library/argparse.html#argparse.Namespace
 
         """
-        # pylint: disable=attribute-defined-outside-init
-        self.arg_attrs_namespace = self.parse_args()
-        return self.arg_attrs_namespace
+        arg_attrs_namespace = self.parse_args()
 
-    def is_desc_parser_invoked(self):
-        """Check if the dest of the subparsers is the _DESC_PARSER_NAME.
-
-        Returns:
-            bool: None if no parser has been invoked and True/False indicates
-                the result.
-
-        """
-        if not hasattr(self, 'arg_attrs_namespace'):
-            return None
+        if not arg_attrs_namespace.debug:
+            logging.disable(logging.DEBUG)
 
         invoked_subparser = getattr(
-            self.arg_attrs_namespace, self._SUBPARSER_DEST_NAME)
-        return invoked_subparser == self._DESC_PARSER_NAME
+            arg_attrs_namespace, self._SUBPARSER_DEST_NAME)
+        if invoked_subparser == self._DESC_PARSER_NAME:
+            Util.get_classobj_of(arg_attrs_namespace.method).print_desc()
+            self.exit()
+
+        return arg_attrs_namespace

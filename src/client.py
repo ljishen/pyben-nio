@@ -4,69 +4,67 @@
 from datetime import datetime as dt
 from multiprocessing import Pool
 
-import argparse
 import logging
 import socket
 
 from converter import Converter
-from version import MyVersionAction
+from paramparser import ParameterParser
+from util import Util
 
 
-def __get_args():
-    prog_desc = 'Simple network socket client.'
-    parser = argparse.ArgumentParser(
-        description=prog_desc,
-        epilog='[BKMG] indicates options that support a \
-                B/K/M/G (b/kb/mb/gb) suffix for \
-                byte, kilobyte, megabyte, or gigabyte')
-
-    parser.add_argument(
+def __populate_start_parser(start_parser):
+    start_parser.add_argument(
         '-a', '--addresses', metavar='ADDRS', nargs='+',
         help='The list of host names or IP addresses the servers are running on \
               (separated by space)',
         required=True)
-    parser.add_argument(
+    start_parser.add_argument(
         '-s', '--size', type=str,
         help='The total size of raw data I/O ([BKMG])',
         required=True)
-    parser.add_argument(
+    start_parser.add_argument(
         '-p', '--port', type=int,
         help='The client connects to the port where the server is listening on \
              (default: 8881)',
         default=8881,
         required=False)
-    parser.add_argument(
+    start_parser.add_argument(
         '-b', '--bind', type=str,
         help='Specify the incoming interface for receiving data, \
               rather than allowing the kernel to set the local address to \
               INADDR_ANY during connect (see ip(7), connect(2))',
         required=False)
-    parser.add_argument(
+    start_parser.add_argument(
         '-l', '--bufsize', metavar='BS', type=str,
         help='The maximum amount of data in bytes to be received at once \
               (default: 4096) ([BKMG])',
         default='4K',
         required=False)
-    parser.add_argument(
-        '-d', '--debug', action='store_true',
-        help='Show debug messages',
-        default=False,
+
+    start_parser.set_multi_value_dest('method')
+    start_parser.add_argument(
+        '-m', '--method', type=str,
+        help='The data filtering method to apply on reading from the file \
+              (default: raw). Use semicolon (;) to separate method parameters',
+        choices=Util.list_methods(),
+        default='raw',
         required=False)
 
-    MyVersionAction.set_prog_desc(prog_desc)
-    parser.add_argument('-v', '--version', action=MyVersionAction,
-                        version='%(prog)s version 1.0')
 
-    args = parser.parse_args()
+def __get_args():
+    prog_desc = 'Simple network socket client with customized \
+workload support.'
 
-    if not args.debug:
-        logging.disable(logging.DEBUG)
+    parser, start_parser = ParameterParser.create(description=prog_desc)
+    __populate_start_parser(start_parser)
 
-    host_addrs = args.addresses
-    size = Converter.human2bytes(args.size)
-    port = args.port
-    bind_addr = args.bind
-    bufsize = Converter.human2bytes(args.bufsize)
+    arg_attrs_namespace = parser.get_parsed_start_namespace()
+
+    host_addrs = arg_attrs_namespace.addresses
+    size = Converter.human2bytes(arg_attrs_namespace.size)
+    port = arg_attrs_namespace.port
+    bind_addr = arg_attrs_namespace.bind
+    bufsize = Converter.human2bytes(arg_attrs_namespace.bufsize)
 
     return host_addrs, size, port, bind_addr, bufsize
 
