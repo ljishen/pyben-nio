@@ -149,7 +149,14 @@ def __send(left, bufsize, iofilter, client_s):
 
     # pylint: disable=no-member
     sent = client_s.send(bytes_obj)
-    logger.debug("Sent %d bytes of data", sent)
+
+    if logger.isEnabledFor(logging.DEBUG):
+        bytes_summary = bytes_obj[:50]
+        logger.debug("Sent %d bytes of data: %r%s",
+                     sent,
+                     bytes_summary,
+                     '...' if len(bytes_obj) > len(bytes_summary) else '')
+
     return sent
 
 

@@ -126,7 +126,15 @@ def __run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
                 break
 
             obj_s = len(bytes_obj)
-            logger.debug("Received %d bytes of data", obj_s)
+
+            if logger.isEnabledFor(logging.DEBUG):
+                bytes_summary = bytes_obj[:50]
+                logger.debug("Received %d bytes of data: %r%s",
+                             obj_s,
+                             bytes_summary,
+                             '...' if len(bytes_obj) > len(bytes_summary)
+                             else '')
+
             obj_pool.append(bytes_obj)
             left -= obj_s
             objs_size += obj_s
