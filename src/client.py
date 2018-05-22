@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from collections import deque
 from datetime import datetime as dt
 from multiprocessing import Pool
 
@@ -65,8 +66,9 @@ workload support.'
     port = arg_attrs_namespace.port
     bind_addr = arg_attrs_namespace.bind
     bufsize = Converter.human2bytes(arg_attrs_namespace.bufsize)
+    method = parser.split_multi_value_param(arg_attrs_namespace.method)
 
-    return host_addrs, size, port, bind_addr, bufsize
+    return host_addrs, size, port, bind_addr, bufsize, method
 
 
 def __setup_socket(addr, port, bind_addr):
@@ -110,37 +112,33 @@ def __setup_socket(addr, port, bind_addr):
     return sock
 
 
-def __run(addr, size, port, bind_addr, bufsize, mem_limit_bs):
+def __run(addr, size, port, bind_addr, bufsize,
+          classobj, method_args, mem_limit_bs):
     sock = __setup_socket(addr, port, bind_addr)
+    iofilter = classobj.create(sock, bufsize, extra_args=method_args)
 
     left = size
-    objs_size = 0
-    obj_pool = []
+    byte_mem = deque(maxlen=mem_limit_bs)  # type: typing.Deque[int]
 
     t_start = dt.now().timestamp()
     try:
         while left > 0:
             num_bys = min(bufsize, left)
-            bytes_obj = sock.recv(num_bys)
+            bytes_obj = iofilter.read(num_bys)
             if not bytes_obj:
                 break
 
+            byte_mem.extend(bytes_obj)
             obj_s = len(bytes_obj)
+            left -= obj_s
 
             if logger.isEnabledFor(logging.DEBUG):
-                bytes_summary = bytes_obj[:50]
-                logger.debug("Received %d bytes of data: %r%s",
+                bytes_summary = bytes(bytes_obj[:50])
+                logger.debug("Received %d bytes of data (summary %r%s)",
                              obj_s,
                              bytes_summary,
                              '...' if len(bytes_obj) > len(bytes_summary)
                              else '')
-
-            obj_pool.append(bytes_obj)
-            left -= obj_s
-            objs_size += obj_s
-            if objs_size > mem_limit_bs:
-                del obj_pool[:(len(obj_pool) // 2)]
-                objs_size //= 2
     finally:
         t_end = dt.now().timestamp()
         dur = t_end - t_start
@@ -168,18 +166,21 @@ def __allot_size(size, num):
 
 
 def main():
-    host_addrs, size, port, bind_addr, bufsize = __get_args()
+    host_addrs, size, port, bind_addr, bufsize, method = __get_args()
     logger.info("[bufsize: %d bytes]", bufsize)
 
     num_servs = len(host_addrs)
 
     p_sizes = __allot_size(size, num_servs)
+    classobj = Util.get_classobj_of(method[0], socket.socket)
+
     mem_limit_bs = Converter.human2bytes('500MB') // num_servs
 
     with Pool(processes=num_servs) as pool:
         futures = [pool.apply_async(__run,
                                     (addr, p_sizes[idx], port, bind_addr,
-                                     bufsize, mem_limit_bs))
+                                     bufsize, classobj, method[1:],
+                                     mem_limit_bs))
                    for idx, addr in enumerate(host_addrs)]
         multi_results = [f.get() for f in futures]
 
@@ -193,7 +194,7 @@ def main():
 
 if __name__ == "__main__":
     logging.basicConfig(
-        format='%(asctime)s | %(name)s | \
+        format='%(asctime)s | %(name)-16s | \
 %(levelname)-8s | PID=%(process)d | %(message)s',
         level=logging.DEBUG)
     logger = logging.getLogger('client')  # pylint: disable=C0103

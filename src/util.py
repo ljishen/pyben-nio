@@ -45,9 +45,11 @@ class Util(object):
 
                 type_arg = cls_obj.__bases__[0].__args__[0]
                 if issubclass(stream_type, type_arg):
+                    Util.logger.debug("[method class: %r]", cls_obj)
                     return cls_obj
 
             elif inspect.isabstract(cls_obj):
+                Util.logger.debug("[method class: %r]", cls_obj)
                 return cls_obj
 
         err = ValueError(

@@ -26,12 +26,18 @@ class IOFilter(typing.Generic[_T]):
     def __init__(
             self: 'IOFilter[_T]',
             stream: _T,
+            bufsize: int,
             **kwargs) -> None:
         self.stream = stream
         self.kwargs = kwargs
+        self.buffer = bytearray(self.get_bufarray_size(bufsize))
 
     @abc.abstractmethod
-    def read(self, size: int) -> bytes:
+    def get_bufarray_size(self: 'IOFilter[_T]', bufsize: int) -> int:
+        """Return the size to be used to create the buffer bytearray."""
+
+    @abc.abstractmethod
+    def read(self: 'IOFilter[_T]', size: int) -> bytes:
         """Read and return up to size bytes.
 
         Args:
@@ -49,6 +55,7 @@ class IOFilter(typing.Generic[_T]):
     def create(
             cls: typing.Type['IOFilter[_T]'],
             stream: _T,
+            bufsize: int,
             extra_args: typing.List[str]) -> 'IOFilter[_T]':
         """Create an instance of a subclass.
 
@@ -99,7 +106,7 @@ class IOFilter(typing.Generic[_T]):
                 "Unknow extra method paramsters %s" % extra_args_dict)
             cls._log_and_exit(err)
 
-        return cls(stream, **kwargs)
+        return cls(stream, bufsize, **kwargs)
 
     @classmethod
     @abc.abstractmethod
@@ -132,7 +139,6 @@ class IOFilter(typing.Generic[_T]):
         print('[DESC]   ' + str(cls.__doc__))
 
         method_params = cls._get_method_params()
-
         name2rettypes = {}  # type: typing.Dict[str, _MethodParam]
 
         for param_name, func in method_params.items():

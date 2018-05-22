@@ -24,6 +24,8 @@ class Match(iofilter.IOFilter[iofilter._T]):
 
     """
 
+    logger = logging.getLogger(__name__)
+
     PARAM_FUNC = 'func'
 
     @classmethod
@@ -60,7 +62,6 @@ class Match(iofilter.IOFilter[iofilter._T]):
 
 
 class MatchIO(Match[BufferedIOBase]):
-    logger = logging.getLogger(__name__)
 
     def __init__(
             self,
@@ -85,17 +86,17 @@ class MatchIO(Match[BufferedIOBase]):
                             res.append(byt_val)
                             if len(res) == size:
                                 self.first_read = False
-                                return bytes(res)
+                                return res
                 except IndexError:
                     self.__check_no_match(res)
                     pass
 
-            byts = self.stream.read(size)
-            if len(byts) < size:
+            bytes_obj = self.stream.read(size)
+            if len(bytes_obj) < size:
                 self.stream.seek(0)
 
-            if byts:
-                self.bytebuf.extend(byts)
+            if bytes_obj:
+                self.bytebuf.extend(bytes_obj)
             else:
                 self.__check_no_match(res)
 

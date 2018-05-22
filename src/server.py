@@ -151,8 +151,8 @@ def __send(left, bufsize, iofilter, client_s):
     sent = client_s.send(bytes_obj)
 
     if logger.isEnabledFor(logging.DEBUG):
-        bytes_summary = bytes_obj[:50]
-        logger.debug("Sent %d bytes of data: %r%s",
+        bytes_summary = bytes(bytes_obj[:50])
+        logger.debug("Sent %d bytes of data (summary: %r%s)",
                      sent,
                      bytes_summary,
                      '...' if len(bytes_obj) > len(bytes_summary) else '')
@@ -173,8 +173,7 @@ def main():
 
     if not zerocopy:
         classobj = Util.get_classobj_of(method[0], type(file_obj))
-        logger.debug("[method class: %r]", classobj)
-        iofilter = classobj.create(file_obj, extra_args=method[1:])
+        iofilter = classobj.create(file_obj, bufsize, extra_args=method[1:])
 
     logger.info("Ready to send %d bytes using data file size of %d bytes",
                 size, fsize)

@@ -9,7 +9,7 @@ import iofilter
 
 
 class Linspace(iofilter.IOFilter[iofilter._T]):
-    """Read evenly spaced bytes from the file.
+    """Read evenly spaced bytes from the underlying stream.
 
     The space is defined by the parameter step, which is equals to the
     difference between the index of the current byte and the index of the last
@@ -17,7 +17,12 @@ class Linspace(iofilter.IOFilter[iofilter._T]):
 
     """
 
+    logger = logging.getLogger(__name__)
+
     PARAM_STEP = 'step'
+
+    def get_bufarray_size(self, bufsize: int) -> int:
+        return bufsize * self.kwargs[self.PARAM_STEP]
 
     @classmethod
     def _get_method_params(cls: typing.Type['Linspace']) -> typing.Dict[
@@ -37,35 +42,21 @@ class Linspace(iofilter.IOFilter[iofilter._T]):
 
 
 class LinspaceIO(Linspace[BufferedIOBase]):
-    logger = logging.getLogger(__name__)
 
     def read(self, size: int) -> bytes:
         super().read(size)
 
-        res = bytearray()
-        buf = bytearray()
-
         step = self.kwargs[self.PARAM_STEP]
-        left = (size - 1) * step + 1
-        while left > 0:
-            bytes_obj = self.stream.read(left)
-            left -= len(bytes_obj)
-            if len(bytes_obj) < left:
+        view = memoryview(self.buffer)
+        start = 0
+        end = size * step
+
+        while end > start:
+            nbytes = self.stream.readinto(view[start:end])
+
+            if nbytes < end - start:
                 self.stream.seek(0)
 
-            if not res and not left:
-                return bytes_obj[::step]
+            start += nbytes
 
-            buf.extend(bytes_obj)
-
-            tmp = buf[::step]
-            if left:
-                tmp = tmp[:-1]
-                end = len(tmp) * step
-                if end:
-                    buf = buf[end:]
-
-            if tmp:
-                res.extend(tmp)
-
-        return bytes(res)
+        return view[:end][::step].tobytes()
