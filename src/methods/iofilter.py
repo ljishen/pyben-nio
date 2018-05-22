@@ -51,6 +51,10 @@ class IOFilter(typing.Generic[_T]):
 
         return bytes()
 
+    def get_stream(self: 'IOFilter[_T]') -> _T:
+        """Return the internal stream object."""
+        return self.stream
+
     @classmethod
     def create(
             cls: typing.Type['IOFilter[_T]'],

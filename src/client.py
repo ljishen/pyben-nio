@@ -112,11 +112,7 @@ def __setup_socket(addr, port, bind_addr):
     return sock
 
 
-def __run(addr, size, port, bind_addr, bufsize,
-          classobj, method_args, mem_limit_bs):
-    sock = __setup_socket(addr, port, bind_addr)
-    iofilter = classobj.create(sock, bufsize, extra_args=method_args)
-
+def __run(iofilter, size, bufsize, mem_limit_bs):
     left = size
     byte_mem = deque(maxlen=mem_limit_bs)  # type: typing.Deque[int]
 
@@ -139,6 +135,10 @@ def __run(addr, size, port, bind_addr, bufsize,
                              bytes_summary,
                              '...' if len(bytes_obj) > len(bytes_summary)
                              else '')
+    except ValueError:
+        logger.exception(
+            "Fail to read data from buffered stream %r", iofilter.get_stream())
+        raise
     finally:
         t_end = dt.now().timestamp()
         dur = t_end - t_start
@@ -146,7 +146,7 @@ def __run(addr, size, port, bind_addr, bufsize,
         logger.info("Received %d bytes of data in %s seconds \
 (bitrate: %s bit/s)",
                     recvd, dur, recvd * 8 / dur)
-        sock.close()
+        iofilter.get_stream().close()
         logger.info("Socket closed")
 
     return t_start, t_end, recvd
@@ -174,14 +174,19 @@ def main():
     p_sizes = __allot_size(size, num_servs)
     classobj = Util.get_classobj_of(method[0], socket.socket)
 
+    iofilters = list()
+    for addr in host_addrs:
+        sock = __setup_socket(addr, port, bind_addr)
+        m_obj = classobj.create(sock, bufsize, extra_args=method[1:])
+        iofilters.append(m_obj)
+
     mem_limit_bs = Converter.human2bytes('500MB') // num_servs
 
     with Pool(processes=num_servs) as pool:
         futures = [pool.apply_async(__run,
-                                    (addr, p_sizes[idx], port, bind_addr,
-                                     bufsize, classobj, method[1:],
-                                     mem_limit_bs))
-                   for idx, addr in enumerate(host_addrs)]
+                                    (iofilter, p_sizes[idx],
+                                     bufsize, mem_limit_bs))
+                   for idx, iofilter in enumerate(iofilters)]
         multi_results = [f.get() for f in futures]
 
     t_starts, t_ends, recvds = zip(*multi_results)
