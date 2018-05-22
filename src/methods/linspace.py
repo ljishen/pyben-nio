@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from io import BufferedIOBase
+from socket import socket
 
 import logging
 import typing
@@ -60,3 +61,25 @@ class LinspaceIO(Linspace[BufferedIOBase]):
             start += nbytes
 
         return view[:end][::step].tobytes()
+
+
+class LinspaceSocket(Linspace[socket]):
+
+    def read(self, size: int) -> bytes:
+        super().read(size)
+
+        step = self.kwargs[self.PARAM_STEP]
+        view = memoryview(self.buffer)
+        start = 0
+        left = size * step
+
+        while left > 0:
+            nbytes = self.stream.recv_into(view[start:], left)
+
+            if not nbytes:
+                break
+
+            start += nbytes
+            left -= nbytes
+
+        return view[:start][::step].tobytes()

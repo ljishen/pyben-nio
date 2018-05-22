@@ -20,7 +20,7 @@ def __populate_start_parser(start_parser):
         required=start_parser.is_start_in_argv_list())
     start_parser.add_argument(
         '-s', '--size', type=str,
-        help='The total size of raw data I/O ([BKMG])',
+        help='The total size of data I/O ([BKMG])',
         required=start_parser.is_start_in_argv_list())
     start_parser.add_argument(
         '-p', '--port', type=int,
