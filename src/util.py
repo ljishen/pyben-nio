@@ -4,11 +4,15 @@
 from importlib import import_module
 from pkgutil import walk_packages
 
+import inspect
+import logging
 import methods
 
 
 class Util(object):
     """A static method utility for convenient to use."""
+
+    logger = logging.getLogger(__name__)
 
     @staticmethod
     def list_methods():
@@ -17,13 +21,37 @@ class Util(object):
                 if name != 'iofilter']
 
     @staticmethod
-    def get_classobj_of(method):
-        """Get the class object according to the method name.
+    def get_classobj_of(method, stream_type=None):
+        """Get the class object according to the method name and stream type.
 
         Args:
             method (str): The name of the method.
+            stream_type (type): The type of the stream object.
 
         """
-        return getattr(
-            import_module('.' + method, methods.__package__),
-            method.capitalize())
+        module = import_module('.' + method, methods.__name__)
+        classes = inspect.getmembers(module, inspect.isclass)
+
+        for cls_tuple in classes:
+            cls_obj = cls_tuple[1]
+
+            # Filter out classes not in the current module
+            if cls_obj.__module__ != module.__name__:
+                continue
+
+            if stream_type:
+                if inspect.isabstract(cls_obj):
+                    continue
+
+                type_arg = cls_obj.__bases__[0].__args__[0]
+                if issubclass(stream_type, type_arg):
+                    return cls_obj
+
+            elif inspect.isabstract(cls_obj):
+                return cls_obj
+
+        err = ValueError(
+            "No class object of method %r found for stream type %s" %
+            (method, stream_type))
+        Util.logger.error(str(err))
+        raise err

@@ -8,12 +8,15 @@ import logging
 import re
 import typing
 
+_T = typing.TypeVar('_T')
+_MethodParam = typing.Union[str, int, typing.Callable]
 
-class IOFilter(abc.ABC):
-    """Abstrct base class of all the methods of how to read data from file.
+
+class IOFilter(typing.Generic[_T]):
+    """ABC of all the methods of how to read data from the underlying stream.
 
     Args:
-        file_obj (typing.BinaryIO): The file object to read from.
+        stream (_T): The underlying stream to read data from.
         **kwargs: Extra parameters for specific method.
 
     """
@@ -21,10 +24,10 @@ class IOFilter(abc.ABC):
     logger = logging.getLogger(__name__)
 
     def __init__(
-            self,
-            file_obj: typing.BinaryIO,
+            self: 'IOFilter[_T]',
+            stream: _T,
             **kwargs) -> None:
-        self.file_obj = file_obj
+        self.stream = stream
         self.kwargs = kwargs
 
     @abc.abstractmethod
@@ -40,23 +43,29 @@ class IOFilter(abc.ABC):
             err = ValueError("Read size must be > 0")
             self._log_and_exit(err)
 
+        return bytes()
+
     @classmethod
     def create(
-            cls: typing.Type['IOFilter'],
-            file_obj: typing.BinaryIO,
-            extra_args: typing.List[str]) -> 'IOFilter':
-        """Create specific class instance.
+            cls: typing.Type['IOFilter[_T]'],
+            stream: _T,
+            extra_args: typing.List[str]) -> 'IOFilter[_T]':
+        """Create an instance of a subclass.
 
         Args:
-            cls (typing.Type['IOFilter']): The class itself. See the type hints
-                for the class itself on https://stackoverflow.com/a/44664064
-            file_obj (typing.BinaryIO): The first parameter in the constructor.
+            cls (typing.Type['IOFilter[_T]']): The class object itself. See the
+                type hints for the class itself on
+                https://stackoverflow.com/a/44664064
+            stream (_T): The first parameter in the constructor.
             extra_args (typing.List[str]): The remaining optional parameters
-                in strings to be passed in the constructor.
+                in a list of strings to be passed in the constructor.
 
         Returns:
-            'IOFilter': See why we can only use string instead of the
-                class itself on https://stackoverflow.com/a/33533514
+            'IOFilter[_T]': See why we can only use string instead of the
+                class itself on
+                https://stackoverflow.com/a/33533514
+                and
+                https://www.python.org/dev/peps/pep-0484/#forward-references
 
         """
         extra_args_dict = {}  # type: typing.Dict[str, str]
@@ -73,7 +82,9 @@ class IOFilter(abc.ABC):
                         cls.__module__, extra_args_dict)
 
         method_params = cls._get_method_params()
-        kwargs = {}  # type: typing.Dict[str, typing.Union[str, int]]
+
+        kwargs = {}  # type: typing.Dict[str, _MethodParam]
+
         for n, cf in method_params.items():
             input_v = extra_args_dict.pop(n, '')
             if not input_v:
@@ -88,13 +99,13 @@ class IOFilter(abc.ABC):
                 "Unknow extra method paramsters %s" % extra_args_dict)
             cls._log_and_exit(err)
 
-        return cls(file_obj, **kwargs)
+        return cls(stream, **kwargs)
 
     @classmethod
     @abc.abstractmethod
-    def _get_method_params(cls: typing.Type['IOFilter']) -> typing.Dict[
+    def _get_method_params(cls: typing.Type['IOFilter[_T]']) -> typing.Dict[
             str,
-            typing.Callable[[str], typing.Union[str, int, typing.Callable]]]:
+            typing.Callable[[str], _MethodParam]]:
         """Return required method parameters in dictionary.
 
         For each item in the return dictionary, the key is the name of the
@@ -105,13 +116,13 @@ class IOFilter(abc.ABC):
 
     @classmethod
     def _log_and_exit(
-            cls: typing.Type['IOFilter'],
+            cls: typing.Type['IOFilter[_T]'],
             err: Exception) -> None:
         cls.logger.error(str(err))
         raise err
 
     @classmethod
-    def print_desc(cls: typing.Type['IOFilter']) -> None:
+    def print_desc(cls: typing.Type['IOFilter[_T]']) -> None:
         """Print information about method initialization."""
         separator = '-' * 79
         print(separator)
@@ -121,15 +132,16 @@ class IOFilter(abc.ABC):
         print('[DESC]   ' + str(cls.__doc__))
 
         method_params = cls._get_method_params()
-        name2rettypes = {}  # type: typing.Dict[str, typing.Union[str, int]]
+
+        name2rettypes = {}  # type: typing.Dict[str, _MethodParam]
 
         for param_name, func in method_params.items():
             try:
                 return_type = getfullargspec(func).annotations['return']
             except (KeyError, TypeError):
                 cls.logger.debug(
-                    "Fallback to show the type of function '%s' because can't find \
-the return type of it", func)
+                    "Fallback to show the type of function '%s' because the \
+return type is unavailable", func)
                 return_type = func
                 pass
 

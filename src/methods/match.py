@@ -3,16 +3,14 @@
 
 from collections import deque
 from inspect import getfullargspec
-
-# The use of relative imports in Python 3
-# https://stackoverflow.com/a/12173406
-from .iofilter import IOFilter
+from io import BufferedIOBase
 
 import logging
 import typing
+import iofilter
 
 
-class Match(IOFilter):
+class Match(iofilter.IOFilter[iofilter._T]):
     """Read the bytes that match the function check.
 
     The parameter func defines the function check that whether the read
@@ -26,59 +24,12 @@ class Match(IOFilter):
 
     """
 
-    logger = logging.getLogger(__name__)
-
     PARAM_FUNC = 'func'
-
-    def __init__(
-            self,
-            file_obj: typing.BinaryIO,
-            **kwargs) -> None:
-        super().__init__(file_obj, **kwargs)
-        self.bytebuf = deque()
-        self.first_read = True
-
-    def read(self, size: int) -> bytes:
-        super().read(size)
-
-        res = bytearray()
-        func = self.kwargs[self.PARAM_FUNC]
-
-        while True:
-            if self.bytebuf:
-                try:
-                    while True:
-                        byt_val = self.bytebuf.popleft()
-                        if func(byt_val):
-                            res.append(byt_val)
-                            if len(res) == size:
-                                self.first_read = False
-                                return bytes(res)
-                except IndexError:
-                    self.__check_no_match(res)
-                    pass
-
-            byts = self.file_obj.read(size)
-            if len(byts) < size:
-                self.file_obj.seek(0)
-
-            if byts:
-                self.bytebuf.extend(byts)
-            else:
-                self.__check_no_match(res)
-
-    def __check_no_match(self: 'Match', bytarr: bytearray) -> None:
-        if (self.first_read
-                and self.file_obj.tell() == 0
-                and not bytarr):
-            raise ValueError(
-                "No matching byte in the buffered stream %r"
-                % self.file_obj.name)
 
     @classmethod
     def _get_method_params(cls: typing.Type['Match']) -> typing.Dict[
             str,
-            typing.Callable[[str], typing.Union[str, int, typing.Callable]]]:
+            typing.Callable[[str], iofilter._MethodParam]]:
         return {cls.PARAM_FUNC: cls.convert}
 
     @classmethod
@@ -106,3 +57,52 @@ class Match(IOFilter):
                            % expr))
 
         return func
+
+
+class MatchIO(Match[BufferedIOBase]):
+    logger = logging.getLogger(__name__)
+
+    def __init__(
+            self,
+            stream: BufferedIOBase,
+            **kwargs) -> None:
+        super().__init__(stream, **kwargs)
+        self.bytebuf = deque()  # type: typing.Deque[int]
+        self.first_read = True
+
+    def read(self, size: int) -> bytes:
+        super().read(size)
+
+        res = bytearray()
+        func = self.kwargs[self.PARAM_FUNC]
+
+        while True:
+            if self.bytebuf:
+                try:
+                    while True:
+                        byt_val = self.bytebuf.popleft()
+                        if func(byt_val):
+                            res.append(byt_val)
+                            if len(res) == size:
+                                self.first_read = False
+                                return bytes(res)
+                except IndexError:
+                    self.__check_no_match(res)
+                    pass
+
+            byts = self.stream.read(size)
+            if len(byts) < size:
+                self.stream.seek(0)
+
+            if byts:
+                self.bytebuf.extend(byts)
+            else:
+                self.__check_no_match(res)
+
+    def __check_no_match(self: 'MatchIO', bytarr: bytearray) -> None:
+        if (self.first_read
+                and self.stream.tell() == 0
+                and not bytarr):
+            raise ValueError(
+                "No matching byte in the buffered stream %r"
+                % self.stream)

@@ -134,6 +134,25 @@ def __setup_socket(bind_addr, port):
     return sock
 
 
+def __zerosend(left, fsize, file_obj, client_s):
+    bys = min(left, fsize)
+
+    # pylint: disable=no-member
+    client_s.sendfile(file_obj, count=bys)
+    logger.debug("Sent %d bytes of data", bys)
+    return bys
+
+
+def __send(left, bufsize, iofilter, client_s):
+    bys = min(left, bufsize)
+    bytes_obj = iofilter.read(bys)
+
+    # pylint: disable=no-member
+    sent = client_s.send(bytes_obj)
+    logger.debug("Sent %d bytes of data", sent)
+    return sent
+
+
 def main():
     bind_addr, size, port, filename, bufsize, method, zerocopy = __get_args()
     logger.info("[bufsize: %d bytes] [zerocopy: %r]", bufsize, zerocopy)
@@ -146,7 +165,8 @@ def main():
         raise RuntimeError("Invalid file size", fsize)
 
     if not zerocopy:
-        classobj = Util.get_classobj_of(method[0])
+        classobj = Util.get_classobj_of(method[0], type(file_obj))
+        logger.debug("[method class: %r]", classobj)
         iofilter = classobj.create(file_obj, extra_args=method[1:])
 
     logger.info("Ready to send %d bytes using data file size of %d bytes",
@@ -173,20 +193,11 @@ Sending data ...", client_addr)
     try:
         while left > 0:
             if zerocopy:
-                bys = min(left, fsize)
-
-                # pylint: disable=no-member
-                client_s.sendfile(file_obj, count=bys)
-                logger.debug("Sent %d bytes of data", bys)
-                left -= bys
+                num_sent = __zerosend(left, fsize, file_obj, client_s)
             else:
-                bys = min(left, bufsize)
-                bytes_obj = iofilter.read(bys)
+                num_sent = __send(left, bufsize, iofilter, client_s)
 
-                # pylint: disable=no-member
-                sent = client_s.send(bytes_obj)
-                left -= sent
-                logger.debug("Sent %d bytes of data", sent)
+            left -= num_sent
 
     # pylint: disable=undefined-variable
     except (ConnectionResetError, BrokenPipeError):
