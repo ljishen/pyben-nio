@@ -64,24 +64,26 @@ class Match(iofilter.IOFilter[iofilter._T]):
 class MatchIO(Match[BufferedIOBase]):
 
     def __init__(
-            self,
+            self: 'MatchIO',
             stream: BufferedIOBase,
+            bufsize: int,
             **kwargs) -> None:
-        super().__init__(stream, **kwargs)
-        self.bytebuf = deque()  # type: typing.Deque[int]
+        super().__init__(stream, bufsize, **kwargs)
+        self.byteque = deque()  # type: typing.Deque[int]
         self.first_read = True
 
     def read(self, size: int) -> bytes:
         super().read(size)
 
         res = bytearray()
+        view = self._get_or_create_bufview()
         func = self.kwargs[self.PARAM_FUNC]
 
         while True:
-            if self.bytebuf:
+            if self.byteque:
                 try:
                     while True:
-                        byt_val = self.bytebuf.popleft()
+                        byt_val = self.byteque.popleft()  # type: int
                         if func(byt_val):
                             res.append(byt_val)
                             if len(res) == size:
@@ -91,12 +93,13 @@ class MatchIO(Match[BufferedIOBase]):
                     self.__check_no_match(res)
                     pass
 
-            bytes_obj = self._stream.read(size)
-            if len(bytes_obj) < size:
+            nbytes = self._stream.readinto(view[:size])
+            if nbytes < size:
                 self._stream.seek(0)
 
-            if bytes_obj:
-                self.bytebuf.extend(bytes_obj)
+            if nbytes:
+                self._incr_count(nbytes)
+                self.byteque.extend(view[:nbytes])
             else:
                 self.__check_no_match(res)
 

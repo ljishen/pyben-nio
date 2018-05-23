@@ -26,7 +26,7 @@ class RawIO(Raw[BufferedIOBase]):
     def read(self, size: int) -> bytes:
         super().read(size)
 
-        view = memoryview(self._buffer)
+        view = self._get_or_create_bufview()
         while True:
             nbytes = self._stream.readinto(view[:size])
 

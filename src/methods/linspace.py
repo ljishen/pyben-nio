@@ -48,7 +48,7 @@ class LinspaceIO(Linspace[BufferedIOBase]):
         super().read(size)
 
         step = self.kwargs[self.PARAM_STEP]
-        view = memoryview(self._buffer)
+        view = self._get_or_create_bufview()
         start = 0
         end = size * step
 
@@ -70,7 +70,7 @@ class LinspaceSocket(Linspace[socket]):
         super().read(size)
 
         step = self.kwargs[self.PARAM_STEP]
-        view = memoryview(self._buffer)
+        view = self._get_or_create_bufview()
         start = 0
         left = size * step
 

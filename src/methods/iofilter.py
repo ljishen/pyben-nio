@@ -60,6 +60,12 @@ class IOFilter(typing.Generic[_T]):
         """Get the total number of raw bytes have read."""
         return self._count
 
+    def _get_or_create_bufview(self: 'IOFilter[_T]') -> memoryview:
+        """Return the memoryview for the bytearray buffer."""
+        if not hasattr(self, '_bufview'):
+            self._bufview = memoryview(self._buffer)
+        return self._bufview
+
     def _incr_count(self: 'IOFilter[_T]', num: int) -> None:
         """Add num to the total number of raw bytes."""
         self._count += num
