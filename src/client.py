@@ -112,7 +112,9 @@ def __setup_socket(addr, port, bind_addr):
     return sock
 
 
-def __run(iofilter, size, bufsize, mem_limit_bs):
+def __run(classobj, sock, method_args, size, bufsize, mem_limit_bs):
+    iofilter = classobj.create(sock, bufsize, extra_args=method_args)
+
     left = size
     byte_mem = deque(maxlen=mem_limit_bs)  # type: typing.Deque[int]
 
@@ -165,6 +167,14 @@ def __allot_size(size, num):
     return p_sizes
 
 
+def __setup_sockets(host_addrs, port, bind_addr):
+    socks = []
+    for addr in host_addrs:
+        sock = __setup_socket(addr, port, bind_addr)
+        socks.append(sock)
+    return socks
+
+
 def main():
     host_addrs, size, port, bind_addr, bufsize, method = __get_args()
     logger.info("[bufsize: %d bytes]", bufsize)
@@ -174,19 +184,15 @@ def main():
     p_sizes = __allot_size(size, num_servs)
     classobj = Util.get_classobj_of(method[0], socket.socket)
 
-    iofilters = []
-    for addr in host_addrs:
-        sock = __setup_socket(addr, port, bind_addr)
-        m_obj = classobj.create(sock, bufsize, extra_args=method[1:])
-        iofilters.append(m_obj)
+    socks = __setup_sockets(host_addrs, port, bind_addr)
 
     mem_limit_bs = Converter.human2bytes('500MB') // num_servs
 
     with Pool(processes=num_servs) as pool:
         futures = [pool.apply_async(__run,
-                                    (iofilter, p_sizes[idx],
-                                     bufsize, mem_limit_bs))
-                   for idx, iofilter in enumerate(iofilters)]
+                                    (classobj, sock, method[1:],
+                                     p_sizes[idx], bufsize, mem_limit_bs))
+                   for idx, sock in enumerate(socks)]
         multi_results = [f.get() for f in futures]
 
     t_starts, t_ends, recvds, raw_byte_counts = zip(*multi_results)

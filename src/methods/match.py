@@ -4,6 +4,7 @@
 from collections import deque
 from inspect import getfullargspec
 from io import BufferedIOBase
+from socket import socket
 
 import logging
 import typing
@@ -27,6 +28,14 @@ class Match(iofilter.IOFilter[iofilter._T]):
     logger = logging.getLogger(__name__)
 
     PARAM_FUNC = 'func'
+
+    def __init__(
+            self: 'Match',
+            stream: iofilter._T,
+            bufsize: int,
+            **kwargs) -> None:
+        super().__init__(stream, bufsize, **kwargs)
+        self._byteque = deque()  # type: typing.Deque[int]
 
     @classmethod
     def _get_method_params(cls: typing.Type['Match']) -> typing.Dict[
@@ -69,8 +78,7 @@ class MatchIO(Match[BufferedIOBase]):
             bufsize: int,
             **kwargs) -> None:
         super().__init__(stream, bufsize, **kwargs)
-        self.byteque = deque()  # type: typing.Deque[int]
-        self.first_read = True
+        self.__first_read = True
 
     def read(self, size: int) -> bytes:
         super().read(size)
@@ -80,14 +88,14 @@ class MatchIO(Match[BufferedIOBase]):
         func = self.kwargs[self.PARAM_FUNC]
 
         while True:
-            if self.byteque:
+            if self._byteque:
                 try:
                     while True:
-                        byt_val = self.byteque.popleft()  # type: int
+                        byt_val = self._byteque.popleft()  # type: int
                         if func(byt_val):
                             res.append(byt_val)
                             if len(res) == size:
-                                self.first_read = False
+                                self.__first_read = False
                                 return res
                 except IndexError:
                     self.__check_no_match(res)
@@ -99,14 +107,43 @@ class MatchIO(Match[BufferedIOBase]):
 
             if nbytes:
                 self._incr_count(nbytes)
-                self.byteque.extend(view[:nbytes])
+                self._byteque.extend(view[:nbytes])
             else:
                 self.__check_no_match(res)
 
     def __check_no_match(self: 'MatchIO', bytarr: bytearray) -> None:
-        if (self.first_read
+        if (self.__first_read
                 and self._stream.tell() == 0
                 and not bytarr):
             raise ValueError(
                 "No matching byte in the buffered stream %r"
                 % self._stream)
+
+
+class MatchSocket(Match[socket]):
+
+    def read(self, size: int) -> bytes:
+        super().read(size)
+
+        res = bytearray()
+        view = self._get_or_create_bufview()
+        func = self.kwargs[self.PARAM_FUNC]
+
+        while True:
+            if self._byteque:
+                try:
+                    while True:
+                        byt_val = self._byteque.popleft()  # type: int
+                        if func(byt_val):
+                            res.append(byt_val)
+                            if len(res) == size:
+                                return res
+                except IndexError:
+                    pass
+
+            nbytes = self._stream.recv_into(view, size)
+            if not nbytes:
+                return res
+
+            self._incr_count(nbytes)
+            self._byteque.extend(view[:nbytes])
