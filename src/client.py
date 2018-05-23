@@ -45,7 +45,7 @@ def __populate_start_parser(start_parser):
     start_parser.set_multi_value_dest('method')
     start_parser.add_argument(
         '-m', '--method', type=str,
-        help='The data filtering method to apply on reading from the file \
+        help='The data filtering method to apply on reading from the socket \
               (default: raw). Use semicolon (;) to separate method parameters',
         choices=Util.list_methods(),
         default='raw',

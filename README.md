@@ -18,8 +18,7 @@ Simple Python Network Socket Benchmark with Customized Read Workload Support.
 
 ## Version
 
-- server: `1.1`
-- client: `1.0`
+- 1.2
 
 
 ## Usage
@@ -28,30 +27,33 @@ Simple Python Network Socket Benchmark with Customized Read Workload Support.
 # Create data_file to be used by the server
 $ fallocate -l 1g data_file
 
-# Start the socket server with data filtering method "match"
+# Start the socket server using data filtering method "match"
+# to select the bytes with even int value up to 1GB
 $ docker run --rm -ti --network host \
     -v "$(pwd)"/data_file:/root/data_file \
     ljishen/pyben-nio \
     --server start \
     -b localhost -s 1g -f /root/data_file -m "match; func=lambda v: v % 2 == 0"
 
-# Start the socket client
+# Start the socket client also using the method "match"
+# to only receive all the bytes of 'a's.
 $ docker run --rm -ti --network host \
     ljishen/pyben-nio \
-    --client \
-    -a localhost -s 1g
+    --client start \
+    -a localhost -s 1g -m "match; func=lambda v: v == ord(b'a')"
 ```
 
 #### Print Socket Server Help Message
 ```bash
 $ docker run --rm ljishen/pyben-nio --server start --help
-usage: server.py start [-h] -b BIND -s SIZE [-p PORT] [-f FN] [-l BS]
-                       [-m {linspace,match,raw} | -z] [-d]
+usage: server.py start [-h] [-d] -b BIND -s SIZE [-p PORT] [-f FN] [-l BS]
+                       [-m {linspace,match,raw} | -z]
 
 optional arguments:
   -h, --help            show this help message and exit
+  -d, --debug           Show debug messages
   -b BIND, --bind BIND  Bind to host, one of this machine's outbound interface
-  -s SIZE, --size SIZE  The total size of raw data I/O ([BKMG])
+  -s SIZE, --size SIZE  The total size of data I/O ([BKMG])
   -p PORT, --port PORT  The port for the server to listen on (default: 8881)
   -f FN, --filename FN  Read from this file and write to the network, instead
                         of generating a temporary file with random data
@@ -62,7 +64,6 @@ optional arguments:
                         file (default: raw). Use semicolon (;) to separate
                         method parameters
   -z, --zerocopy        Use "socket.sendfile()" instead of "socket.send()".
-  -d, --debug           Show debug messages
 
 [BKMG] indicates options that support a B/K/M/G (b/kb/mb/gb) suffix for byte,
 kilobyte, megabyte, or gigabyte
@@ -85,25 +86,24 @@ $ docker run --rm ljishen/pyben-nio --server desc -m match
     Also see truth value testing in Python 3:
     https://docs.python.org/3/library/stdtypes.html#truth-value-testing
 
-
+    
 [PARAMS] Extra method parameter {'func': typing.Callable[[int], object]}
 -------------------------------------------------------------------------------
 ```
 
 #### Print Socket Client Help Message
 ```bash
-$ docker run --rm ljishen/pyben-nio --client --help
-usage: client.py [-h] -a ADDRS [ADDRS ...] -s SIZE [-p PORT] [-b BIND] [-l BS]
-                 [-d] [-v]
-
-Simple network socket client.
+$ docker run --rm ljishen/pyben-nio --client start --help
+usage: client.py start [-h] [-d] -a ADDRS [ADDRS ...] -s SIZE [-p PORT]
+                       [-b BIND] [-l BS] [-m {linspace,match,raw}]
 
 optional arguments:
   -h, --help            show this help message and exit
+  -d, --debug           Show debug messages
   -a ADDRS [ADDRS ...], --addresses ADDRS [ADDRS ...]
                         The list of host names or IP addresses the servers are
                         running on (separated by space)
-  -s SIZE, --size SIZE  The total size of raw data I/O ([BKMG])
+  -s SIZE, --size SIZE  The total size of data I/O ([BKMG])
   -p PORT, --port PORT  The client connects to the port where the server is
                         listening on (default: 8881)
   -b BIND, --bind BIND  Specify the incoming interface for receiving data,
@@ -112,8 +112,10 @@ optional arguments:
                         connect(2))
   -l BS, --bufsize BS   The maximum amount of data in bytes to be received at
                         once (default: 4096) ([BKMG])
-  -d, --debug           Show debug messages
-  -v, --version         show program's version number and exit
+  -m {linspace,match,raw}, --method {linspace,match,raw}
+                        The data filtering method to apply on reading from the
+                        socket (default: raw). Use semicolon (;) to separate
+                        method parameters
 
 [BKMG] indicates options that support a B/K/M/G (b/kb/mb/gb) suffix for byte,
 kilobyte, megabyte, or gigabyte
