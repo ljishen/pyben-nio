@@ -44,10 +44,13 @@ class Util(object):
                     continue
 
                 if hasattr(cls_obj, '__orig_bases__'):
-                    # Python 3.6
+                    # For Python 3.6
+                    # The original bases are stored as __orig_bases__ in the
+                    # class namespace
+                    # https://www.python.org/dev/peps/pep-0560/#mro-entries
                     bases = cls_obj.__orig_bases__
                 else:
-                    # Python 3.5
+                    # For Python 3.5
                     bases = cls_obj.__bases__
 
                 type_arg = bases[0].__args__[0]
