@@ -149,7 +149,7 @@ def __run(iofilter, size, bufsize, mem_limit_bs):
         iofilter.get_stream().close()
         logger.info("Socket closed")
 
-    return t_start, t_end, recvd
+    return t_start, t_end, recvd, iofilter.get_count()
 
 
 def __allot_size(size, num):
@@ -174,7 +174,7 @@ def main():
     p_sizes = __allot_size(size, num_servs)
     classobj = Util.get_classobj_of(method[0], socket.socket)
 
-    iofilters = list()
+    iofilters = []
     for addr in host_addrs:
         sock = __setup_socket(addr, port, bind_addr)
         m_obj = classobj.create(sock, bufsize, extra_args=method[1:])
@@ -189,12 +189,17 @@ def main():
                    for idx, iofilter in enumerate(iofilters)]
         multi_results = [f.get() for f in futures]
 
-    t_starts, t_ends, recvds = zip(*multi_results)
+    t_starts, t_ends, recvds, raw_byte_counts = zip(*multi_results)
     total_dur = max(t_ends) - min(t_starts)
     total_recvd = sum(recvds)
-    logger.info("[SUMMARY] Total received %d bytes of data in %s seconds \
+    total_raw_bytes = sum(raw_byte_counts)
+    logger.info("[SUMMARY] Total received %d (in %d, %.2f%%) bytes of data in %s seconds \
 (bitrate: %s bit/s)",
-                total_recvd, total_dur, total_recvd * 8 / total_dur)
+                total_recvd,
+                total_raw_bytes,
+                total_recvd / total_raw_bytes * 100,
+                total_dur,
+                total_recvd * 8 / total_dur)
 
 
 if __name__ == "__main__":

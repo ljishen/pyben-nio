@@ -28,13 +28,10 @@ class IOFilter(typing.Generic[_T]):
             stream: _T,
             bufsize: int,
             **kwargs) -> None:
-        self.stream = stream
+        self._stream = stream
         self.kwargs = kwargs
-        self.buffer = bytearray(self.get_bufarray_size(bufsize))
-
-    @abc.abstractmethod
-    def get_bufarray_size(self: 'IOFilter[_T]', bufsize: int) -> int:
-        """Return the size to be used to create the buffer bytearray."""
+        self._buffer = bytearray(self.get_bufarray_size(bufsize))
+        self._count = 0
 
     @abc.abstractmethod
     def read(self: 'IOFilter[_T]', size: int) -> bytes:
@@ -51,9 +48,21 @@ class IOFilter(typing.Generic[_T]):
 
         return bytes()
 
+    def get_bufarray_size(self: 'IOFilter[_T]', bufsize: int) -> int:
+        """Return the size to be used to create the buffer bytearray."""
+        return bufsize
+
     def get_stream(self: 'IOFilter[_T]') -> _T:
         """Return the internal stream object."""
-        return self.stream
+        return self._stream
+
+    def get_count(self: 'IOFilter[_T]') -> int:
+        """Get the total number of raw bytes have read."""
+        return self._count
+
+    def _incr_count(self: 'IOFilter[_T]', num: int) -> None:
+        """Add num to the total number of raw bytes."""
+        self._count += num
 
     @classmethod
     def create(

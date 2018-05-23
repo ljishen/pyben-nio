@@ -14,9 +14,6 @@ class Raw(iofilter.IOFilter[iofilter._T]):
 
     logger = logging.getLogger(__name__)
 
-    def get_bufarray_size(self, bufsize: int) -> int:
-        return bufsize
-
     @classmethod
     def _get_method_params(cls: typing.Type['Raw']) -> typing.Dict[
             str,
@@ -29,14 +26,16 @@ class RawIO(Raw[BufferedIOBase]):
     def read(self, size: int) -> bytes:
         super().read(size)
 
+        view = memoryview(self._buffer)
         while True:
-            nbytes = self.stream.readinto(self.buffer)
+            nbytes = self._stream.readinto(view[:size])
 
             if nbytes < size:
-                self.stream.seek(0)
+                self._stream.seek(0)
 
             if nbytes:
-                return self.buffer[:nbytes]
+                self._incr_count(nbytes)
+                return self._buffer[:nbytes]
 
 
 class RawSocket(Raw[socket]):
@@ -44,6 +43,7 @@ class RawSocket(Raw[socket]):
     def read(self, size: int) -> bytes:
         super().read(size)
 
-        nbytes = self.stream.recv_into(self.buffer, size)
+        nbytes = self._stream.recv_into(self._buffer, size)
+        self._incr_count(nbytes)
 
-        return self.buffer[:nbytes]
+        return self._buffer[:nbytes]

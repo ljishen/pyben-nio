@@ -48,18 +48,19 @@ class LinspaceIO(Linspace[BufferedIOBase]):
         super().read(size)
 
         step = self.kwargs[self.PARAM_STEP]
-        view = memoryview(self.buffer)
+        view = memoryview(self._buffer)
         start = 0
         end = size * step
 
         while end > start:
-            nbytes = self.stream.readinto(view[start:end])
+            nbytes = self._stream.readinto(view[start:end])
 
             if nbytes < end - start:
-                self.stream.seek(0)
+                self._stream.seek(0)
 
             start += nbytes
 
+        self._incr_count(end)
         return view[:end][::step].tobytes()
 
 
@@ -69,12 +70,12 @@ class LinspaceSocket(Linspace[socket]):
         super().read(size)
 
         step = self.kwargs[self.PARAM_STEP]
-        view = memoryview(self.buffer)
+        view = memoryview(self._buffer)
         start = 0
         left = size * step
 
         while left > 0:
-            nbytes = self.stream.recv_into(view[start:], left)
+            nbytes = self._stream.recv_into(view[start:], left)
 
             if not nbytes:
                 break
@@ -82,4 +83,5 @@ class LinspaceSocket(Linspace[socket]):
             start += nbytes
             left -= nbytes
 
+        self._incr_count(start)
         return view[:start][::step].tobytes()

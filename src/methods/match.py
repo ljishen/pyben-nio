@@ -91,9 +91,9 @@ class MatchIO(Match[BufferedIOBase]):
                     self.__check_no_match(res)
                     pass
 
-            bytes_obj = self.stream.read(size)
+            bytes_obj = self._stream.read(size)
             if len(bytes_obj) < size:
-                self.stream.seek(0)
+                self._stream.seek(0)
 
             if bytes_obj:
                 self.bytebuf.extend(bytes_obj)
@@ -102,8 +102,8 @@ class MatchIO(Match[BufferedIOBase]):
 
     def __check_no_match(self: 'MatchIO', bytarr: bytearray) -> None:
         if (self.first_read
-                and self.stream.tell() == 0
+                and self._stream.tell() == 0
                 and not bytarr):
             raise ValueError(
                 "No matching byte in the buffered stream %r"
-                % self.stream)
+                % self._stream)

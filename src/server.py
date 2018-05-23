@@ -220,9 +220,19 @@ Sending data ...", client_addr)
     finally:
         dur = dt.now().timestamp() - t_start
         sent = size - left
-        logger.info("Total sent %d bytes of data in %s seconds \
+
+        raw_bytes_info = ''
+        if not zerocopy:
+            total_raw_bytes = iofilter.get_count()
+            raw_bytes_info = ' (in {:d}, {:.3f}%)'.format(
+                total_raw_bytes, sent / total_raw_bytes * 100)
+
+        logger.info("Total sent %d%s bytes of data in %s seconds \
 (bitrate: %s bit/s)",
-                    sent, dur, sent * 8 / dur)
+                    sent,
+                    raw_bytes_info,
+                    dur, sent * 8 / dur)
+
         client_s.close()
         sock.close()
         sock = None
