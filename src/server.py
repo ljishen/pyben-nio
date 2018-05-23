@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from argparse import Namespace
 from datetime import datetime as dt
 
 import logging
@@ -65,17 +66,16 @@ workload support.'
     parser, start_parser = ParameterParser.create(description=prog_desc)
     __populate_start_parser(start_parser)
 
-    arg_attrs_namespace = parser.get_parsed_start_namespace()
+    arg_attrs_ns = parser.get_parsed_start_namespace()
 
-    bind_addr = arg_attrs_namespace.bind
-    size = Converter.human2bytes(arg_attrs_namespace.size)
-    port = arg_attrs_namespace.port
-    filename = arg_attrs_namespace.filename
-    bufsize = Converter.human2bytes(arg_attrs_namespace.bufsize)
-    method = parser.split_multi_value_param(arg_attrs_namespace.method)
-    zerocopy = arg_attrs_namespace.zerocopy
-
-    return bind_addr, size, port, filename, bufsize, method, zerocopy
+    return Namespace(
+        bind_addr=arg_attrs_ns.bind,
+        size=Converter.human2bytes(arg_attrs_ns.size),
+        port=arg_attrs_ns.port,
+        filename=arg_attrs_ns.filename,
+        bufsize=Converter.human2bytes(arg_attrs_ns.bufsize),
+        method=parser.split_multi_value_param(arg_attrs_ns.method),
+        zerocopy=arg_attrs_ns.zerocopy)
 
 
 def __validate_file(filename, size):
@@ -161,24 +161,26 @@ def __send(left, bufsize, iofilter, client_s):
 
 
 def main():
-    bind_addr, size, port, filename, bufsize, method, zerocopy = __get_args()
-    logger.info("[bufsize: %d bytes] [zerocopy: %r]", bufsize, zerocopy)
+    args_ns = __get_args()
+    logger.info("[bufsize: %d bytes] [zerocopy: %r]",
+                args_ns.bufsize, args_ns.zerocopy)
 
-    sock = __setup_socket(bind_addr, port)
+    sock = __setup_socket(args_ns.bind_addr, args_ns.port)
 
-    file_obj = __validate_file(filename, size)
+    file_obj = __validate_file(args_ns.filename, args_ns.size)
     fsize = os.fstat(file_obj.fileno()).st_size
     if not fsize:
         raise RuntimeError("Invalid file size", fsize)
 
-    if not zerocopy:
-        classobj = Util.get_classobj_of(method[0], type(file_obj))
-        iofilter = classobj.create(file_obj, bufsize, extra_args=method[1:])
+    if not args_ns.zerocopy:
+        classobj = Util.get_classobj_of(args_ns.method[0], type(file_obj))
+        iofilter = classobj.create(
+            file_obj, args_ns.bufsize, extra_args=args_ns.method[1:])
 
     logger.info("Ready to send %d bytes using data file size of %d bytes",
-                size, fsize)
+                args_ns.size, fsize)
 
-    logger.info("Listening socket bound to port %d", port)
+    logger.info("Listening socket bound to port %d", args_ns.port)
     try:
         (client_s, client_addr) = sock.accept()
         # If successful, we now have TWO sockets
@@ -194,21 +196,21 @@ def main():
     logger.info("Accepted incoming connection %s from client. \
 Sending data ...", client_addr)
 
-    left = size
+    left = args_ns.size
     t_start = dt.now().timestamp()
     try:
         while left > 0:
-            if zerocopy:
+            if args_ns.zerocopy:
                 num_sent = __zerosend(left, fsize, file_obj, client_s)
             else:
-                num_sent = __send(left, bufsize, iofilter, client_s)
+                num_sent = __send(left, args_ns.bufsize, iofilter, client_s)
 
             left -= num_sent
 
     # pylint: disable=undefined-variable
     except (ConnectionResetError, BrokenPipeError):
         logger.warn("Connection closed by client")
-        if zerocopy:
+        if args_ns.zerocopy:
             # File position is updated on socket.sendfile() return or also
             # in case of error in which case file.tell() can be used to
             # figure out the number of bytes which were sent.
@@ -219,10 +221,10 @@ Sending data ...", client_addr)
             "Fail to read data from buffered stream %r", file_obj.name)
     finally:
         dur = dt.now().timestamp() - t_start
-        sent = size - left
+        sent = args_ns.size - left
 
         raw_bytes_info = ''
-        if not zerocopy:
+        if not args_ns.zerocopy:
             total_raw_bytes = iofilter.get_count()
             raw_bytes_info = ' (raw {:d}, {:.3f}%)'.format(
                 total_raw_bytes, sent / total_raw_bytes * 100)

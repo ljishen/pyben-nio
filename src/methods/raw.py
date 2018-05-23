@@ -9,7 +9,7 @@ import typing
 import iofilter
 
 
-class Raw(iofilter.IOFilter[iofilter._T]):
+class Raw(iofilter.IOFilter[iofilter.T]):
     """Read and return raw data without any filtering."""
 
     logger = logging.getLogger(__name__)
@@ -17,13 +17,14 @@ class Raw(iofilter.IOFilter[iofilter._T]):
     @classmethod
     def _get_method_params(cls: typing.Type['Raw']) -> typing.Dict[
             str,
-            typing.Callable[[str], iofilter._MethodParam]]:
+            typing.Callable[[str], iofilter.MethodParam]]:
         return {}
 
 
 class RawIO(Raw[BufferedIOBase]):
 
     def read(self, size: int) -> bytes:
+        """Read data from the file stream."""
         super().read(size)
 
         view = self._get_or_create_bufview()
@@ -41,6 +42,7 @@ class RawIO(Raw[BufferedIOBase]):
 class RawSocket(Raw[socket]):
 
     def read(self, size: int) -> bytes:
+        """Read data from the socket stream."""
         super().read(size)
 
         nbytes = self._stream.recv_into(self._buffer, size)

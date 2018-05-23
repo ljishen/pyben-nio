@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from argparse import Namespace
 from collections import deque
 from datetime import datetime as dt
 from multiprocessing import Pool
@@ -59,16 +60,15 @@ workload support.'
     parser, start_parser = ParameterParser.create(description=prog_desc)
     __populate_start_parser(start_parser)
 
-    arg_attrs_namespace = parser.get_parsed_start_namespace()
+    arg_attrs_ns = parser.get_parsed_start_namespace()
 
-    host_addrs = arg_attrs_namespace.addresses
-    size = Converter.human2bytes(arg_attrs_namespace.size)
-    port = arg_attrs_namespace.port
-    bind_addr = arg_attrs_namespace.bind
-    bufsize = Converter.human2bytes(arg_attrs_namespace.bufsize)
-    method = parser.split_multi_value_param(arg_attrs_namespace.method)
-
-    return host_addrs, size, port, bind_addr, bufsize, method
+    return Namespace(
+        host_addrs=arg_attrs_ns.addresses,
+        size=Converter.human2bytes(arg_attrs_ns.size),
+        port=arg_attrs_ns.port,
+        bind_addr=arg_attrs_ns.bind,
+        bufsize=Converter.human2bytes(arg_attrs_ns.bufsize),
+        method=parser.split_multi_value_param(arg_attrs_ns.method))
 
 
 def __setup_socket(addr, port, bind_addr):
@@ -112,8 +112,11 @@ def __setup_socket(addr, port, bind_addr):
     return sock
 
 
-def __run(classobj, sock, method_args, size, bufsize, mem_limit_bs):
-    iofilter = classobj.create(sock, bufsize, extra_args=method_args)
+def __run(idx, classobj, args_ns, size, mem_limit_bs):
+    sock = __setup_socket(
+        args_ns.host_addrs[idx], args_ns.port, args_ns.bind_addr)
+    iofilter = classobj.create(
+        sock, args_ns.bufsize, extra_args=args_ns.method[1:])
 
     left = size
     byte_mem = deque(maxlen=mem_limit_bs)  # type: typing.Deque[int]
@@ -121,7 +124,7 @@ def __run(classobj, sock, method_args, size, bufsize, mem_limit_bs):
     t_start = dt.now().timestamp()
     try:
         while left > 0:
-            num_bys = min(bufsize, left)
+            num_bys = min(args_ns.bufsize, left)
             bytes_obj = iofilter.read(num_bys)
             if not bytes_obj:
                 break
@@ -167,32 +170,22 @@ def __allot_size(size, num):
     return p_sizes
 
 
-def __setup_sockets(host_addrs, port, bind_addr):
-    socks = []
-    for addr in host_addrs:
-        sock = __setup_socket(addr, port, bind_addr)
-        socks.append(sock)
-    return socks
-
-
 def main():
-    host_addrs, size, port, bind_addr, bufsize, method = __get_args()
-    logger.info("[bufsize: %d bytes]", bufsize)
+    args_ns = __get_args()
+    logger.info("[bufsize: %d bytes]", args_ns.bufsize)
 
-    num_servs = len(host_addrs)
+    num_servs = len(args_ns.host_addrs)
 
-    p_sizes = __allot_size(size, num_servs)
-    classobj = Util.get_classobj_of(method[0], socket.socket)
-
-    socks = __setup_sockets(host_addrs, port, bind_addr)
+    p_sizes = __allot_size(args_ns.size, num_servs)
+    classobj = Util.get_classobj_of(args_ns.method[0], socket.socket)
 
     mem_limit_bs = Converter.human2bytes('500MB') // num_servs
 
     with Pool(processes=num_servs) as pool:
         futures = [pool.apply_async(__run,
-                                    (classobj, sock, method[1:],
-                                     p_sizes[idx], bufsize, mem_limit_bs))
-                   for idx, sock in enumerate(socks)]
+                                    (idx, classobj, args_ns,
+                                     size, mem_limit_bs))
+                   for idx, size in enumerate(p_sizes)]
         multi_results = [f.get() for f in futures]
 
     t_starts, t_ends, recvds, raw_byte_counts = zip(*multi_results)

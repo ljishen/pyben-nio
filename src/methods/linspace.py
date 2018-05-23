@@ -9,7 +9,7 @@ import typing
 import iofilter
 
 
-class Linspace(iofilter.IOFilter[iofilter._T]):
+class Linspace(iofilter.IOFilter[iofilter.T]):
     """Read evenly spaced bytes from the underlying stream.
 
     The space is defined by the parameter step, which is equals to the
@@ -22,13 +22,13 @@ class Linspace(iofilter.IOFilter[iofilter._T]):
 
     PARAM_STEP = 'step'
 
-    def get_bufarray_size(self, bufsize: int) -> int:
+    def _get_bufarray_size(self, bufsize: int) -> int:
         return bufsize * self.kwargs[self.PARAM_STEP]
 
     @classmethod
     def _get_method_params(cls: typing.Type['Linspace']) -> typing.Dict[
             str,
-            typing.Callable[[str], iofilter._MethodParam]]:
+            typing.Callable[[str], iofilter.MethodParam]]:
         return {cls.PARAM_STEP: cls.convert}
 
     @classmethod
@@ -45,6 +45,7 @@ class Linspace(iofilter.IOFilter[iofilter._T]):
 class LinspaceIO(Linspace[BufferedIOBase]):
 
     def read(self, size: int) -> bytes:
+        """Read data from the file stream."""
         super().read(size)
 
         step = self.kwargs[self.PARAM_STEP]
@@ -67,6 +68,7 @@ class LinspaceIO(Linspace[BufferedIOBase]):
 class LinspaceSocket(Linspace[socket]):
 
     def read(self, size: int) -> bytes:
+        """Read data from the socket stream."""
         super().read(size)
 
         step = self.kwargs[self.PARAM_STEP]

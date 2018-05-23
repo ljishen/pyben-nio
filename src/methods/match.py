@@ -11,7 +11,7 @@ import typing
 import iofilter
 
 
-class Match(iofilter.IOFilter[iofilter._T]):
+class Match(iofilter.IOFilter[iofilter.T]):
     """Read the bytes that match the function check.
 
     The parameter func defines the function check that whether the read
@@ -31,7 +31,7 @@ class Match(iofilter.IOFilter[iofilter._T]):
 
     def __init__(
             self: 'Match',
-            stream: iofilter._T,
+            stream: iofilter.T,
             bufsize: int,
             **kwargs) -> None:
         super().__init__(stream, bufsize, **kwargs)
@@ -40,7 +40,7 @@ class Match(iofilter.IOFilter[iofilter._T]):
     @classmethod
     def _get_method_params(cls: typing.Type['Match']) -> typing.Dict[
             str,
-            typing.Callable[[str], iofilter._MethodParam]]:
+            typing.Callable[[str], iofilter.MethodParam]]:
         return {cls.PARAM_FUNC: cls.convert}
 
     @classmethod
@@ -51,15 +51,14 @@ class Match(iofilter.IOFilter[iofilter._T]):
             func = eval(expr)
         except Exception:
             cls.logger.exception(
-                "Unable to parse function expression: %s" % expr)
+                "Unable to parse function expression: %s", expr)
             raise
 
         try:
             num_args = len(getfullargspec(func).args)
         except TypeError:
             cls.logger.exception(
-                "Fail to inspect parameters of function expresstion: %s"
-                % expr)
+                "Fail to inspect parameters of function expresstion: %s", expr)
             raise
 
         if num_args != 1:
@@ -81,6 +80,7 @@ class MatchIO(Match[BufferedIOBase]):
         self.__first_read = True
 
     def read(self, size: int) -> bytes:
+        """Read data from the file stream."""
         super().read(size)
 
         res = bytearray()
@@ -99,7 +99,6 @@ class MatchIO(Match[BufferedIOBase]):
                                 return res
                 except IndexError:
                     self.__check_no_match(res)
-                    pass
 
             nbytes = self._stream.readinto(view[:size])
             if nbytes < size:
@@ -123,6 +122,7 @@ class MatchIO(Match[BufferedIOBase]):
 class MatchSocket(Match[socket]):
 
     def read(self, size: int) -> bytes:
+        """Read data from the socket stream."""
         super().read(size)
 
         res = bytearray()

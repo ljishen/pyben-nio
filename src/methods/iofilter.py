@@ -8,15 +8,15 @@ import logging
 import re
 import typing
 
-_T = typing.TypeVar('_T')
-_MethodParam = typing.Union[str, int, typing.Callable]
+T = typing.TypeVar('T')
+MethodParam = typing.Union[str, int, typing.Callable]
 
 
-class IOFilter(typing.Generic[_T]):
+class IOFilter(typing.Generic[T]):
     """ABC of all the methods of how to read data from the underlying stream.
 
     Args:
-        stream (_T): The underlying stream to read data from.
+        stream (T): The underlying stream to read data from.
         **kwargs: Extra parameters for specific method.
 
     """
@@ -24,17 +24,17 @@ class IOFilter(typing.Generic[_T]):
     logger = logging.getLogger(__name__)
 
     def __init__(
-            self: 'IOFilter[_T]',
-            stream: _T,
+            self: 'IOFilter[T]',
+            stream: T,
             bufsize: int,
             **kwargs) -> None:
         self._stream = stream
         self.kwargs = kwargs
-        self._buffer = bytearray(self.get_bufarray_size(bufsize))
+        self._buffer = bytearray(self._get_bufarray_size(bufsize))
         self.__count = 0
 
     @abc.abstractmethod
-    def read(self: 'IOFilter[_T]', size: int) -> bytes:
+    def read(self: 'IOFilter[T]', size: int) -> bytes:
         """Read and return up to size bytes.
 
         Args:
@@ -48,46 +48,46 @@ class IOFilter(typing.Generic[_T]):
 
         return bytes()
 
-    def get_bufarray_size(self: 'IOFilter[_T]', bufsize: int) -> int:
-        """Return the size to be used to create the buffer bytearray."""
-        return bufsize
-
-    def get_stream(self: 'IOFilter[_T]') -> _T:
+    def get_stream(self: 'IOFilter[T]') -> T:
         """Return the internal stream object."""
         return self._stream
 
-    def get_count(self: 'IOFilter[_T]') -> int:
+    def get_count(self: 'IOFilter[T]') -> int:
         """Get the total number of raw bytes have read."""
         return self.__count
 
-    def _get_or_create_bufview(self: 'IOFilter[_T]') -> memoryview:
+    def _get_bufarray_size(self: 'IOFilter[T]', bufsize: int) -> int:
+        """Return the size to be used to create the buffer bytearray."""
+        return bufsize
+
+    def _get_or_create_bufview(self: 'IOFilter[T]') -> memoryview:
         """Return the memoryview for the bytearray buffer."""
         if not hasattr(self, '_bufview'):
             self._bufview = memoryview(self._buffer)
         return self._bufview
 
-    def _incr_count(self: 'IOFilter[_T]', num: int) -> None:
+    def _incr_count(self: 'IOFilter[T]', num: int) -> None:
         """Add num to the total number of raw bytes."""
         self.__count += num
 
     @classmethod
     def create(
-            cls: typing.Type['IOFilter[_T]'],
-            stream: _T,
+            cls: typing.Type['IOFilter[T]'],
+            stream: T,
             bufsize: int,
-            extra_args: typing.List[str]) -> 'IOFilter[_T]':
+            extra_args: typing.List[str]) -> 'IOFilter[T]':
         """Create an instance of a subclass.
 
         Args:
-            cls (typing.Type['IOFilter[_T]']): The class object itself. See the
+            cls (typing.Type['IOFilter[T]']): The class object itself. See the
                 type hints for the class itself on
                 https://stackoverflow.com/a/44664064
-            stream (_T): The first parameter in the constructor.
+            stream (T): The first parameter in the constructor.
             extra_args (typing.List[str]): The remaining optional parameters
                 in a list of strings to be passed in the constructor.
 
         Returns:
-            'IOFilter[_T]': See why we can only use string instead of the
+            'IOFilter[T]': See why we can only use string instead of the
                 class itself on
                 https://stackoverflow.com/a/33533514
                 and
@@ -109,16 +109,16 @@ class IOFilter(typing.Generic[_T]):
 
         method_params = cls._get_method_params()
 
-        kwargs = {}  # type: typing.Dict[str, _MethodParam]
+        kwargs = {}  # type: typing.Dict[str, MethodParam]
 
-        for n, cf in method_params.items():
-            input_v = extra_args_dict.pop(n, '')
+        for param_name, conv_func in method_params.items():
+            input_v = extra_args_dict.pop(param_name, '')
             if not input_v:
                 err = ValueError(
-                    "Required method parameter '%s' not found" % n)
+                    "Required method parameter '%s' not found" % param_name)
                 cls._log_and_exit(err)
 
-            kwargs[n] = cf(input_v)
+            kwargs[param_name] = conv_func(input_v)
 
         if extra_args_dict:
             err = ValueError(
@@ -129,9 +129,9 @@ class IOFilter(typing.Generic[_T]):
 
     @classmethod
     @abc.abstractmethod
-    def _get_method_params(cls: typing.Type['IOFilter[_T]']) -> typing.Dict[
+    def _get_method_params(cls: typing.Type['IOFilter[T]']) -> typing.Dict[
             str,
-            typing.Callable[[str], _MethodParam]]:
+            typing.Callable[[str], MethodParam]]:
         """Return required method parameters in dictionary.
 
         For each item in the return dictionary, the key is the name of the
@@ -142,13 +142,13 @@ class IOFilter(typing.Generic[_T]):
 
     @classmethod
     def _log_and_exit(
-            cls: typing.Type['IOFilter[_T]'],
+            cls: typing.Type['IOFilter[T]'],
             err: Exception) -> None:
         cls.logger.error(str(err))
         raise err
 
     @classmethod
-    def print_desc(cls: typing.Type['IOFilter[_T]']) -> None:
+    def print_desc(cls: typing.Type['IOFilter[T]']) -> None:
         """Print information about method initialization."""
         separator = '-' * 79
         print(separator)
@@ -158,7 +158,7 @@ class IOFilter(typing.Generic[_T]):
         print('[DESC]   ' + str(cls.__doc__))
 
         method_params = cls._get_method_params()
-        name2rettypes = {}  # type: typing.Dict[str, _MethodParam]
+        name2rettypes = {}  # type: typing.Dict[str, MethodParam]
 
         for param_name, func in method_params.items():
             try:
@@ -168,7 +168,6 @@ class IOFilter(typing.Generic[_T]):
                     "Fallback to show the type of function '%s' because the \
 return type is unavailable", func)
                 return_type = func
-                pass
 
             name2rettypes[param_name] = return_type
 
