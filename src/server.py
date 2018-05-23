@@ -224,7 +224,7 @@ Sending data ...", client_addr)
         raw_bytes_info = ''
         if not zerocopy:
             total_raw_bytes = iofilter.get_count()
-            raw_bytes_info = ' (in {:d}, {:.3f}%)'.format(
+            raw_bytes_info = ' (raw {:d}, {:.3f}%)'.format(
                 total_raw_bytes, sent / total_raw_bytes * 100)
 
         logger.info("Total sent %d%s bytes of data in %s seconds \

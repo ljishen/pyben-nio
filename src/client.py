@@ -204,7 +204,7 @@ def main():
     # We might not receive anything if the server failed.
     raw_bytes_info = ''
     if total_raw_bytes:
-        raw_bytes_info = ' (in {:d}, {:.3f}%)'.format(
+        raw_bytes_info = ' (raw {:d}, {:.3f}%)'.format(
             total_raw_bytes, total_recvd / total_raw_bytes * 100)
 
     logger.info("[SUMMARY] Total received %d%s bytes of data in %s seconds \
