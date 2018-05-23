@@ -43,7 +43,14 @@ class Util(object):
                 if inspect.isabstract(cls_obj):
                     continue
 
-                type_arg = cls_obj.__bases__[0].__args__[0]
+                if hasattr(cls_obj, '__orig_bases__'):
+                    # Python 3.6
+                    bases = cls_obj.__orig_bases__
+                else:
+                    # Python 3.5
+                    bases = cls_obj.__bases__
+
+                type_arg = bases[0].__args__[0]
                 if issubclass(stream_type, type_arg):
                     Util.logger.debug("[method class: %r]", cls_obj)
                     return cls_obj
