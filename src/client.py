@@ -192,12 +192,19 @@ def main():
     t_starts, t_ends, recvds, raw_byte_counts = zip(*multi_results)
     total_dur = max(t_ends) - min(t_starts)
     total_recvd = sum(recvds)
+
     total_raw_bytes = sum(raw_byte_counts)
-    logger.info("[SUMMARY] Total received %d (in %d, %.2f%%) bytes of data in %s seconds \
+
+    # We might not receive anything if the server failed.
+    raw_bytes_info = ''
+    if total_raw_bytes:
+        raw_bytes_info = ' (in {:d}, {:.3f}%)'.format(
+            total_raw_bytes, total_recvd / total_raw_bytes * 100)
+
+    logger.info("[SUMMARY] Total received %d%s bytes of data in %s seconds \
 (bitrate: %s bit/s)",
                 total_recvd,
-                total_raw_bytes,
-                total_recvd / total_raw_bytes * 100,
+                raw_bytes_info,
                 total_dur,
                 total_recvd * 8 / total_dur)
 
