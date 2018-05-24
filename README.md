@@ -8,7 +8,9 @@
 
 Simple Python Network Socket Benchmark with Customized Read Workload Support.
 
-![screenshot](https://user-images.githubusercontent.com/468515/40152383-d759197a-5939-11e8-9547-e2395e9062d3.gif)
+![pyben-nio_demo](https://user-images.githubusercontent.com/468515/40457687-a9d527c8-5eac-11e8-8bd9-8fcae35c7e00.gif)
+
+[View this asciicast on asciinema.org](https://asciinema.org/a/VfGDflAuT0kPQPUyCraJ5WQTE)
 
 
 ## Supported Architectures
