@@ -20,7 +20,7 @@ Simple Python Network Socket Benchmark with Customized Read Workload Support.
 
 ## Version
 
-- 1.2
+- 0.2
 
 
 ## Usage

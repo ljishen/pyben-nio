@@ -65,7 +65,7 @@ class ParameterParser(ArgumentParser):
         parser = ParameterParser(*args, **kwargs)
         MyVersionAction.set_prog_desc(kwargs['description'])
         parser.add_argument('-v', '--version', action=MyVersionAction,
-                            version='%(prog)s version 1.2')
+                            version='%(prog)s version 0.2')
 
         subparsers = parser.add_subparsers(
             dest=cls._SUBPARSER_DEST_NAME,
