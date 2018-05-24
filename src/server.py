@@ -90,7 +90,7 @@ def __validate_file(filename, size):
     logger.info("Generating temporary file of size %d bytes ...", size)
     try:
         file_obj.write(os.urandom(size))
-        file_obj.flush()
+        file_obj.seek(0)
     except OSError:
         logger.exception("Can't write to temporary file")
         file_obj.close()
