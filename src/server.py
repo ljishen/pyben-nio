@@ -36,7 +36,7 @@ def __populate_start_parser(start_parser):
     start_parser.add_argument(
         '-l', '--bufsize', metavar='BS', type=str,
         help='The maximum amount of data in bytes to be sent at once \
-              (default: 4096) ([BKMG])',
+              (default: 4K) ([BKMG])',
         default='4K',
         required=False)
 

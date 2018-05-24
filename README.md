@@ -60,7 +60,7 @@ optional arguments:
   -f FN, --filename FN  Read from this file and write to the network, instead
                         of generating a temporary file with random data
   -l BS, --bufsize BS   The maximum amount of data in bytes to be sent at once
-                        (default: 4096) ([BKMG])
+                        (default: 4K) ([BKMG])
   -m {linspace,match,raw}, --method {linspace,match,raw}
                         The data filtering method to apply on reading from the
                         file (default: raw). Use semicolon (;) to separate
@@ -113,7 +113,7 @@ optional arguments:
                         address to INADDR_ANY during connect (see ip(7),
                         connect(2))
   -l BS, --bufsize BS   The maximum amount of data in bytes to be received at
-                        once (default: 4096) ([BKMG])
+                        once (default: 4K) ([BKMG])
   -m {linspace,match,raw}, --method {linspace,match,raw}
                         The data filtering method to apply on reading from the
                         socket (default: raw). Use semicolon (;) to separate
