@@ -12,7 +12,7 @@ env:
     - IMAGE_NAME=ljishen/pyben-nio:${IMAGE_TAG}
 
 script:
-  # Generate the Dockerfile-${IMAGE_TAG}
+  # Generate the Dockerfile.${IMAGE_TAG}
   - bash update.sh
 
   # Configure binfmt-support on the Docker host
@@ -20,7 +20,7 @@ script:
   - docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
   # Build image
-  - docker build --cache-from "${IMAGE_NAME}" -t "${IMAGE_NAME}" . -f Dockerfile-${IMAGE_TAG}
+  - docker build --cache-from "${IMAGE_NAME}" -t "${IMAGE_NAME}" . -f Dockerfile.${IMAGE_TAG}
 
 before_deploy:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This script file generates Dockerfile-arm64v8
+# This script file generates Dockerfile.arm64v8
 
 set -eu -o pipefail
 
@@ -8,7 +8,7 @@ PYTHON_VERSION=3.6
 ALPINE_VERSION=3.7
 
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-desc_filename="$dir"/Dockerfile-arm64v8
+desc_filename="$dir"/Dockerfile.arm64v8
 
 source_url=https://raw.githubusercontent.com/docker-library/python/master/"${PYTHON_VERSION}"/alpine"${ALPINE_VERSION}"/Dockerfile
 
