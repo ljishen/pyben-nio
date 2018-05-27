@@ -52,23 +52,19 @@ def __populate_start_parser(start_parser):
         default='raw',
         required=False)
 
+    start_parser.set_defaults(func=__handle_start)
 
-def __get_args():
-    prog_desc = 'Simple network socket client with customized \
-workload support.'
 
-    parser, start_parser = ParameterParser.create(description=prog_desc)
-    __populate_start_parser(start_parser)
-
-    arg_attrs_ns = parser.get_parsed_start_namespace()
-
-    return Namespace(
+def __handle_start(arg_attrs_ns):
+    args_ns = Namespace(
         host_addrs=arg_attrs_ns.addresses,
         size=Converter.human2bytes(arg_attrs_ns.size),
         port=arg_attrs_ns.port,
         bind_addr=arg_attrs_ns.bind,
         bufsize=Converter.human2bytes(arg_attrs_ns.bufsize),
-        method=parser.split_multi_value_param(arg_attrs_ns.method))
+        method=ParameterParser.split_multi_value_param(arg_attrs_ns.method))
+
+    __do_start(args_ns)
 
 
 def __setup_socket(addr, port, bind_addr):
@@ -170,8 +166,7 @@ def __allot_size(size, num):
     return p_sizes
 
 
-def main():
-    args_ns = __get_args()
+def __do_start(args_ns):
     logger.info("[bufsize: %d bytes]", args_ns.bufsize)
 
     num_servs = len(args_ns.host_addrs)
@@ -206,6 +201,17 @@ def main():
                 raw_bytes_info,
                 total_dur,
                 total_recvd * 8 / total_dur)
+
+
+def main():
+    prog_desc = 'Simple network socket client with customized \
+workload support.'
+
+    parser = ParameterParser(description=prog_desc)
+    start_parser = parser.prepare()
+    __populate_start_parser(start_parser)
+
+    parser.parse_args()
 
 
 if __name__ == "__main__":

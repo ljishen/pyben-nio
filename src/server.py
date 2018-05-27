@@ -58,24 +58,20 @@ def __populate_start_parser(start_parser):
         help='Use "socket.sendfile()" instead of "socket.send()".',
         required=False)
 
+    start_parser.set_defaults(func=__handle_start)
 
-def __get_args():
-    prog_desc = 'Simple network socket server with customized \
-workload support.'
 
-    parser, start_parser = ParameterParser.create(description=prog_desc)
-    __populate_start_parser(start_parser)
-
-    arg_attrs_ns = parser.get_parsed_start_namespace()
-
-    return Namespace(
+def __handle_start(arg_attrs_ns):
+    args_ns = Namespace(
         bind_addr=arg_attrs_ns.bind,
         size=Converter.human2bytes(arg_attrs_ns.size),
         port=arg_attrs_ns.port,
         filename=arg_attrs_ns.filename,
         bufsize=Converter.human2bytes(arg_attrs_ns.bufsize),
-        method=parser.split_multi_value_param(arg_attrs_ns.method),
+        method=ParameterParser.split_multi_value_param(arg_attrs_ns.method),
         zerocopy=arg_attrs_ns.zerocopy)
+
+    __do_start(args_ns)
 
 
 def __validate_file(filename, size):
@@ -160,8 +156,7 @@ def __send(left, bufsize, iofilter, client_s):
     return sent
 
 
-def main():
-    args_ns = __get_args()
+def __do_start(args_ns):
     logger.info("[bufsize: %d bytes] [zerocopy: %r]",
                 args_ns.bufsize, args_ns.zerocopy)
 
@@ -240,6 +235,17 @@ Sending data ...", client_addr)
         sock = None
         file_obj.close()
         logger.info("Sockets closed, now exiting")
+
+
+def main():
+    prog_desc = 'Simple network socket server with customized \
+workload support.'
+
+    parser = ParameterParser(description=prog_desc)
+    start_parser = parser.prepare()
+    __populate_start_parser(start_parser)
+
+    parser.parse_args()
 
 
 if __name__ == "__main__":

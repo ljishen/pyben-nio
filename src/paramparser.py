@@ -13,8 +13,6 @@ from util import Util
 
 class ParameterParser(ArgumentParser):
 
-    _SUBPARSER_DEST_NAME = "subparser_dest"
-
     _START_PARSER_NAME = 'start'
     _DESC_PARSER_NAME = 'desc'
 
@@ -53,26 +51,22 @@ class ParameterParser(ArgumentParser):
         items = re.split(';', string.strip().rstrip(';'))
         return [i.strip() for i in items]
 
-    @classmethod
-    def create(cls, *args, **kwargs):
-        """Create an instance of the ParameterParser.
+    def prepare(self):
+        """Prepare and config the basic common settings.
 
         Returns:
-            The instance of the ParameterParser as parser and its subparser
-            start_parser.
+            The subparser start_parser to be populated specifically later.
 
         """
-        parser = ParameterParser(*args, **kwargs)
-        MyVersionAction.set_prog_desc(kwargs['description'])
-        parser.add_argument('-v', '--version', action=MyVersionAction,
-                            version='%(prog)s version 0.2')
+        MyVersionAction.set_prog_desc(self.description)
+        self.add_argument('-v', '--version', action=MyVersionAction,
+                          version='%(prog)s version 0.2')
 
-        subparsers = parser.add_subparsers(
-            dest=cls._SUBPARSER_DEST_NAME,
+        subparsers = self.add_subparsers(
             help='Select either command to show more messages')
 
         start_parser = subparsers.add_parser(
-            cls._START_PARSER_NAME,
+            self._START_PARSER_NAME,
             epilog='[BKMG] indicates options that support a \
                     B/K/M/G (b/kb/mb/gb) suffix for \
                     byte, kilobyte, megabyte, or gigabyte')
@@ -82,46 +76,47 @@ class ParameterParser(ArgumentParser):
             default=False,
             required=False)
 
-        desc_parser = subparsers.add_parser(cls._DESC_PARSER_NAME)
+        desc_parser = subparsers.add_parser(self._DESC_PARSER_NAME)
         desc_parser.add_argument(
             '-m', '--method', type=str,
             help='Show description messages for specific data filtering \
                   method',
             choices=Util.list_methods(),
-            required=not cls.is_start_in_argv_list())
+            required=not self.is_start_in_argv_list())
         desc_parser.add_argument(
             '-d', '--debug', action='store_true',
             help='Show debug messages',
             default=False,
             required=False)
+        desc_parser.set_defaults(
+            func=lambda arg_attrs_ns: Util.get_classobj_of(
+                arg_attrs_ns.method).print_desc())
 
-        return parser, start_parser
+        return start_parser
 
     @classmethod
     def is_start_in_argv_list(cls):
         """Check if the START_PARSER_NAME in the command line argument list."""
         return cls._START_PARSER_NAME in sys.argv
 
-    def get_parsed_start_namespace(self):
-        """Get the populated namespace from the start_parser.
+    def parse_args(self, args=None, namespace=None):
+        """Convert arguments as attributes of the namespace.
+
+        Note that this function internally calls the associated function of
+        each subparser set by set_defaults().
 
         Returns:
-            Namespace: The namesapce that encapsulates all argument
-                attributes from the start_parser.
+            Namespace: The populated namespace.
 
             See the description of the return type Namespace:
                 https://docs.python.org/3/library/argparse.html#argparse.Namespace
 
         """
-        arg_attrs_namespace = self.parse_args()
+        arg_attrs_ns = super().parse_args(args, namespace)
 
-        if not arg_attrs_namespace.debug:
+        if not arg_attrs_ns.debug:
             logging.disable(logging.DEBUG)
 
-        invoked_subparser = getattr(
-            arg_attrs_namespace, self._SUBPARSER_DEST_NAME)
-        if invoked_subparser == self._DESC_PARSER_NAME:
-            Util.get_classobj_of(arg_attrs_namespace.method).print_desc()
-            self.exit()
+        arg_attrs_ns.func(arg_attrs_ns)
 
-        return arg_attrs_namespace
+        return arg_attrs_ns
