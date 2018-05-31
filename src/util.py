@@ -6,6 +6,8 @@ from pkgutil import walk_packages
 
 import inspect
 import logging
+import re
+
 import methods
 
 
@@ -13,6 +15,8 @@ class Util(object):
     """A static method utility for convenient to use."""
 
     logger = logging.getLogger(__name__)
+
+    _SUPPORT_UNITS = ['b', 'kb', 'mb', 'gb']
 
     @staticmethod
     def list_methods():
@@ -62,8 +66,39 @@ class Util(object):
                 Util.logger.debug("[method class: %r]", cls_obj)
                 return cls_obj
 
-        err = ValueError(
+        Util.__log_and_exit(ValueError(
             "No class object of method %r found for stream type %s" %
-            (method, stream_type))
+            (method, stream_type)))
+
+    @staticmethod
+    def human2bytes(size):
+        """Convert the human readable size to the size in bytes."""
+        if '.' in size:
+            Util.__log_and_exit(
+                ValueError("Can't parse non-integer size %r" % size))
+
+        if '-' in size:
+            Util.__log_and_exit(
+                ValueError("Input size %r is not positive" % size))
+
+        num_s = re.split(r'\D+', size)[0]
+        if not num_s:
+            Util.__log_and_exit(ValueError("Invalid input size %r" % size))
+
+        unit = size[len(num_s):].lower()
+        num = int(num_s)
+
+        if not unit.endswith('b'):
+            unit += 'b'
+
+        for unt in Util._SUPPORT_UNITS:
+            if unt == unit:
+                return num
+            num <<= 10
+
+        Util.__log_and_exit(ValueError("Invalid input size %r" % size))
+
+    @staticmethod
+    def __log_and_exit(err):
         Util.logger.error(str(err))
         raise err

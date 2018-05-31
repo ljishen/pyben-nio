@@ -9,7 +9,6 @@ from multiprocessing import Pool
 import logging
 import socket
 
-from converter import Converter
 from paramparser import ParameterParser
 from util import Util
 
@@ -58,10 +57,10 @@ def __populate_start_parser(start_parser):
 def __handle_start(arg_attrs_ns):
     args_ns = Namespace(
         host_addrs=arg_attrs_ns.addresses,
-        size=Converter.human2bytes(arg_attrs_ns.size),
+        size=Util.human2bytes(arg_attrs_ns.size),
         port=arg_attrs_ns.port,
         bind_addr=arg_attrs_ns.bind,
-        bufsize=Converter.human2bytes(arg_attrs_ns.bufsize),
+        bufsize=Util.human2bytes(arg_attrs_ns.bufsize),
         method=ParameterParser.split_multi_value_param(arg_attrs_ns.method))
 
     __do_start(args_ns)
@@ -174,7 +173,7 @@ def __do_start(args_ns):
     p_sizes = __allot_size(args_ns.size, num_servs)
     classobj = Util.get_classobj_of(args_ns.method[0], socket.socket)
 
-    mem_limit_bs = Converter.human2bytes('500MB') // num_servs
+    mem_limit_bs = Util.human2bytes('500MB') // num_servs
 
     with Pool(processes=num_servs) as pool:
         futures = [pool.apply_async(__run,

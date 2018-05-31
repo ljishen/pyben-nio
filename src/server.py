@@ -9,7 +9,6 @@ import os
 import socket
 import tempfile
 
-from converter import Converter
 from paramparser import ParameterParser
 from util import Util
 
@@ -64,10 +63,10 @@ def __populate_start_parser(start_parser):
 def __handle_start(arg_attrs_ns):
     args_ns = Namespace(
         bind_addr=arg_attrs_ns.bind,
-        size=Converter.human2bytes(arg_attrs_ns.size),
+        size=Util.human2bytes(arg_attrs_ns.size),
         port=arg_attrs_ns.port,
         filename=arg_attrs_ns.filename,
-        bufsize=Converter.human2bytes(arg_attrs_ns.bufsize),
+        bufsize=Util.human2bytes(arg_attrs_ns.bufsize),
         method=ParameterParser.split_multi_value_param(arg_attrs_ns.method),
         zerocopy=arg_attrs_ns.zerocopy)
 
