@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 def __get_args():
     parser = argparse.ArgumentParser(
-        description='Efficient random digit in parallel generator.')
+        description='Efficient random digits in parallel generator.')
     parser.add_argument(
         'count', type=str,
         help='Output count of random digits')
