@@ -217,11 +217,12 @@ Sending data ...", client_addr)
         dur = dt.now().timestamp() - t_start
         sent = args_ns.size - left
 
-        total_raw_bytes = iofilter.get_count()
         raw_bytes_info = ''
-        if not args_ns.zerocopy and total_raw_bytes:
-            raw_bytes_info = ' (raw {:d}, {:.3f}%)'.format(
-                total_raw_bytes, sent / total_raw_bytes * 100)
+        if not args_ns.zerocopy:
+            total_raw_bytes = iofilter.get_count()
+            if total_raw_bytes:
+                raw_bytes_info = ' (raw {:d}, {:.3f}%)'.format(
+                    total_raw_bytes, sent / total_raw_bytes * 100)
 
         logger.info("Total sent %d%s bytes of data in %s seconds \
 (bitrate: %s bit/s)",
