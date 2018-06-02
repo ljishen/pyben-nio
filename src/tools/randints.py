@@ -88,7 +88,7 @@ def __split(count, num):
 def run():
     """Entrypoint function for calling general tool."""
     count, filename, num_procs = __get_args()
-    logger.info("[result file %r]", filename)
+    logger.info("[result file: %r]", filename)
 
     spec = importlib.util.find_spec('secrets')
     if spec is None:
