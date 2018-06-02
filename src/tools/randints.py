@@ -100,6 +100,8 @@ def run():
         logger.warning("Delete obsolete %r", filename)
         subprocess.run(["rm", "-rf", filename])
 
+    subprocess.run("rm -rf " + filename + ".*", shell=True)
+
     with Pool(processes=num_procs) as pool:
         t_start = dt.now().timestamp()
 
