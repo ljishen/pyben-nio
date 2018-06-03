@@ -25,19 +25,16 @@ def __populate_start_parser(start_parser):
     start_parser.add_argument(
         '-p', '--port', type=int,
         help='The port for the server to listen on (default: 8881)',
-        default=8881,
-        required=False)
+        default=8881)
     start_parser.add_argument(
         '-f', '--filename', metavar='FN', type=str,
         help='Read from this file and write to the network, \
-              instead of generating a temporary file with random data',
-        required=False)
+              instead of generating a temporary file with random data')
     start_parser.add_argument(
         '-l', '--bufsize', metavar='BS', type=str,
         help='The maximum amount of data in bytes to be sent at once \
               (default: 4K) ([BKMG])',
-        default='4K',
-        required=False)
+        default='4K')
 
     # Since socket.sendfile() performs the data reading and sending within
     # the kernel space, there is no user space function can inject into
@@ -50,12 +47,10 @@ def __populate_start_parser(start_parser):
         help='The data filtering method to apply on reading from the file \
               (default: raw). Use semicolon (;) to separate method parameters',
         choices=Util.list_methods(),
-        default='raw',
-        required=False)
+        default='raw')
     group.add_argument(
         '-z', '--zerocopy', action='store_true',
-        help='Use "socket.sendfile()" instead of "socket.send()".',
-        required=False)
+        help='Use "socket.sendfile()" instead of "socket.send()".')
 
     start_parser.set_defaults(func=__handle_start)
 
@@ -238,6 +233,7 @@ Sending data ...", client_addr)
 
 
 def main():
+    """Entrypoint function."""
     prog_desc = 'Simple network socket server with customized \
 workload support.'
 

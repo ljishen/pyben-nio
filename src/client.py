@@ -27,20 +27,17 @@ def __populate_start_parser(start_parser):
         '-p', '--port', type=int,
         help='The client connects to the port where the server is listening on \
              (default: 8881)',
-        default=8881,
-        required=False)
+        default=8881)
     start_parser.add_argument(
         '-b', '--bind', type=str,
         help='Specify the incoming interface for receiving data, \
               rather than allowing the kernel to set the local address to \
-              INADDR_ANY during connect (see ip(7), connect(2))',
-        required=False)
+              INADDR_ANY during connect (see ip(7), connect(2))')
     start_parser.add_argument(
         '-l', '--bufsize', metavar='BS', type=str,
         help='The maximum amount of data in bytes to be received at once \
               (default: 4K) ([BKMG])',
-        default='4K',
-        required=False)
+        default='4K')
 
     start_parser.set_multi_value_dest('method')
     start_parser.add_argument(
@@ -48,8 +45,7 @@ def __populate_start_parser(start_parser):
         help='The data filtering method to apply on reading from the socket \
               (default: raw). Use semicolon (;) to separate method parameters',
         choices=Util.list_methods(),
-        default='raw',
-        required=False)
+        default='raw')
 
     start_parser.set_defaults(func=__handle_start)
 
@@ -203,6 +199,7 @@ def __do_start(args_ns):
 
 
 def main():
+    """Entrypoint function."""
     prog_desc = 'Simple network socket client with customized \
 workload support.'
 
