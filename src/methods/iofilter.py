@@ -134,7 +134,12 @@ class IOFilter(typing.Generic[T]):
         return self.__count
 
     def _get_bufarray_size(self: 'IOFilter[T]', bufsize: int) -> int:
-        """Return the size to be used to create the buffer bytearray."""
+        """Return the size to be used to create the buffer bytearray.
+
+        Returns:
+            int: Return the bufsize by default.
+
+        """
         return bufsize
 
     def _get_or_create_bufview(self: 'IOFilter[T]') -> memoryview:
