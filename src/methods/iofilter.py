@@ -42,8 +42,8 @@ class MethodParam(object):
         """Convert string to the object of desired type using the converter.
 
         Returns:
-            ParamValue: A converted object if the string is not empty and None,
-                otherwise the default value.
+            ParamValue: A converted object if the string is not empty and
+                not None, otherwise the default value.
 
         """
         if not string:
