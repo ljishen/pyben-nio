@@ -10,6 +10,8 @@ import logging
 import typing
 import iofilter
 
+from util import Util
+
 
 class Match(iofilter.IOFilter[iofilter.T]):
     """Read the bytes that match the function check.
@@ -28,20 +30,22 @@ class Match(iofilter.IOFilter[iofilter.T]):
     logger = logging.getLogger(__name__)
 
     PARAM_FUNC = 'func'
+    PARAM_PROCS = 'procs'
 
     def __init__(
             self: 'Match',
             stream: iofilter.T,
             bufsize: int,
             **kwargs) -> None:
+        """Initialize base attributes for all subclasses."""
         super().__init__(stream, bufsize, **kwargs)
         self._byteque = deque()  # type: typing.Deque[int]
 
     @classmethod
-    def _get_method_params(cls: typing.Type['Match']) -> typing.Dict[
-            str,
-            typing.Callable[[str], iofilter.MethodParam]]:
-        return {cls.PARAM_FUNC: cls.__convert}
+    def _get_method_params(cls: typing.Type['Match']) -> typing.List[
+            iofilter.MethodParam]:
+        return [iofilter.MethodParam(cls.PARAM_FUNC, cls.__convert),
+                iofilter.MethodParam(cls.PARAM_PROCS, int, 1)]
 
     @classmethod
     def __convert(
@@ -62,9 +66,8 @@ class Match(iofilter.IOFilter[iofilter.T]):
             raise
 
         if num_args != 1:
-            cls._log_and_exit(
-                ValueError("Function expresstion %s has more than 1 argument"
-                           % expr))
+            raise ValueError("Function expresstion %s has more than 1 argument"
+                             % expr)
 
         return func
 
@@ -77,6 +80,13 @@ class MatchIO(Match[BufferedIOBase]):
             stream: BufferedIOBase,
             bufsize: int,
             **kwargs) -> None:
+        """Initialize addtional attribute for instance of this class.
+
+        Attributes:
+            __first_read (bool): Identify if it is the first time of
+                reading through the whole file.
+
+        """
         super().__init__(stream, bufsize, **kwargs)
         self.__first_read = True
 

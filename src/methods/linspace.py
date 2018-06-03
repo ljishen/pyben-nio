@@ -8,6 +8,8 @@ import logging
 import typing
 import iofilter
 
+from util import Util
+
 
 class Linspace(iofilter.IOFilter[iofilter.T]):
     """Read evenly spaced bytes from the underlying stream.
@@ -26,10 +28,9 @@ class Linspace(iofilter.IOFilter[iofilter.T]):
         return bufsize * self.kwargs[self.PARAM_STEP]
 
     @classmethod
-    def _get_method_params(cls: typing.Type['Linspace']) -> typing.Dict[
-            str,
-            typing.Callable[[str], iofilter.MethodParam]]:
-        return {cls.PARAM_STEP: cls.__convert}
+    def _get_method_params(cls: typing.Type['Linspace']) -> typing.List[
+            iofilter.MethodParam]:
+        return [iofilter.MethodParam(cls.PARAM_STEP, cls.__convert)]
 
     @classmethod
     def __convert(
@@ -37,8 +38,7 @@ class Linspace(iofilter.IOFilter[iofilter.T]):
             string: str) -> int:
         res = int(string)
         if res < 1:
-            err = ValueError("parameter '%s' must be >= 1" % cls.PARAM_STEP)
-            cls._log_and_exit(err)
+            raise ValueError("parameter '%s' must be >= 1" % cls.PARAM_STEP)
         return res
 
 

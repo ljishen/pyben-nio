@@ -8,8 +8,70 @@ import logging
 import re
 import typing
 
+from util import Util
+
+
+class MethodParam(object):
+    """Simple object for storing method related parameters."""
+
+    logger = logging.getLogger(__name__)
+
+    ParamValue = typing.Union[str, int, typing.Callable]
+    ParamConverter = typing.Callable[[str], ParamValue]
+
+    def __init__(
+            self: 'MethodParam',
+            name: str,
+            conv: ParamConverter,
+            default: ParamValue = None) -> None:
+        """Initialize instance for this class.
+
+        Args:
+            name (str): Name of the method parameter.
+            conv (ParamConverter): A function for converting string to the
+                object of desired type (ParamValue).
+            default (ParamValue): The default value of this
+                parameter.
+
+        """
+        self.name = name
+        self.conv = conv
+        self.default = default
+
+    def get_value(self: 'MethodParam', string: str) -> 'ParamValue':
+        """Convert string to the object of desired type using the converter.
+
+        Returns:
+            ParamValue: A converted object if the string is not empty and None,
+                otherwise the default value.
+
+        """
+        if not string:
+            if self.default is None:
+                raise ValueError(
+                    "Required method parameter '%s' not found" % self.name)
+
+            return self.default
+
+        return self.conv(string)
+
+    def __str__(self: 'MethodParam'):
+        """Generate nicely printable string representation for this object."""
+        try:
+            return_type = getfullargspec(self.conv).annotations['return']
+        except (KeyError, TypeError):
+            self.logger.debug(
+                "Fallback to show the type of function '%s' because the \
+return type is unavailable", self.conv)
+            return_type = self.conv
+
+        return '{}: {}{}'.format(
+            self.name,
+            return_type,
+            ' (default: {})'.format(self.default) if self.default else '')
+
+
 T = typing.TypeVar('T')
-MethodParam = typing.Union[str, int, typing.Callable]
 
 
 class IOFilter(typing.Generic[T]):
@@ -28,6 +90,7 @@ class IOFilter(typing.Generic[T]):
             stream: T,
             bufsize: int,
             **kwargs) -> None:
+        """Initialize base attributes for all subclasses."""
         self._stream = stream
         self.kwargs = kwargs
         self._buffer = bytearray(self._get_bufarray_size(bufsize))
@@ -44,7 +107,7 @@ class IOFilter(typing.Generic[T]):
         """
         if size is None or size <= 0:
             err = ValueError("Read size must be > 0")
-            self._log_and_exit(err)
+            Util.log_and_raise(self.logger, err)
 
         return bytes()
 
@@ -102,77 +165,56 @@ class IOFilter(typing.Generic[T]):
                 cls.logger.error(str(err))
                 raise err
 
-            extra_args_dict[pair[0]] = pair[1].strip()
+            extra_args_dict[pair[0].strip()] = pair[1].strip()
 
         cls.logger.info("[method: %s] [input parameters: %s]",
                         cls.__module__, extra_args_dict)
 
         method_params = cls._get_method_params()
 
-        kwargs = {}  # type: typing.Dict[str, MethodParam]
+        kwargs = {}  # type: typing.Dict[str, MethodParam.ParamValue]
 
-        for param_name, conv_func in method_params.items():
-            input_v = extra_args_dict.pop(param_name, '')
-            if not input_v:
-                err = ValueError(
-                    "Required method parameter '%s' not found" % param_name)
-                cls._log_and_exit(err)
-
-            kwargs[param_name] = conv_func(input_v)
+        for paramobj in method_params:
+            input_v = extra_args_dict.pop(paramobj.name, '')
+            try:
+                kwargs[paramobj.name] = paramobj.get_value(input_v)
+            except ValueError as err:
+                Util.log_and_raise(cls.logger, err)
 
         if extra_args_dict:
-            err = ValueError(
-                "Unknow extra method paramsters %s" % extra_args_dict)
-            cls._log_and_exit(err)
+            Util.log_and_raise(
+                cls.logger,
+                ValueError("Unknow extra method paramsters %s"
+                           % extra_args_dict))
 
         return cls(stream, bufsize, **kwargs)
 
     @classmethod
-    @abc.abstractmethod
-    def _get_method_params(cls: typing.Type['IOFilter[T]']) -> typing.Dict[
-            str,
-            typing.Callable[[str], MethodParam]]:
-        """Return required method parameters in dictionary.
+    def _get_method_params(cls: typing.Type['IOFilter[T]']) -> typing.List[
+            MethodParam]:
+        """Return method parameters as a list.
 
-        For each item in the return dictionary, the key is the name of the
-        parameter, and the value is a function to convert the input value
-        in string into the necessary type used in the program.
+        Subclass should override this method if extra parameters are needed.
 
         """
-
-    @classmethod
-    def _log_and_exit(
-            cls: typing.Type['IOFilter[T]'],
-            err: Exception) -> None:
-        cls.logger.error(str(err))
-        raise err
+        return []
 
     @classmethod
     def print_desc(cls: typing.Type['IOFilter[T]']) -> None:
         """Print information about method initialization."""
         separator = '-' * 79
+
         print(separator)
         print('[MODULE] ' + cls.__module__)
         print(separator)
 
-        print('[DESC]   ' + str(cls.__doc__))
+        print('[DESC] ' + str(cls.__doc__))
 
         method_params = cls._get_method_params()
-        name2rettypes = {}  # type: typing.Dict[str, MethodParam]
-
-        for param_name, func in method_params.items():
-            try:
-                return_type = getfullargspec(func).annotations['return']
-            except (KeyError, TypeError):
-                cls.logger.debug(
-                    "Fallback to show the type of function '%s' because the \
-return type is unavailable", func)
-                return_type = func
-
-            name2rettypes[param_name] = return_type
-
-        if name2rettypes:
-            print('[PARAMS] Extra method parameter', name2rettypes)
+        if method_params:
+            print('[PARAMS] ')
+            for paramobj in method_params:
+                print('    ' + str(paramobj))
         else:
             print('[PARAMS] Extra method parameter is not required.')
 

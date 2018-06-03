@@ -5,7 +5,6 @@ from io import BufferedIOBase
 from socket import socket
 
 import logging
-import typing
 import iofilter
 
 
@@ -13,12 +12,6 @@ class Raw(iofilter.IOFilter[iofilter.T]):
     """Read and return raw data without any filtering."""
 
     logger = logging.getLogger(__name__)
-
-    @classmethod
-    def _get_method_params(cls: typing.Type['Raw']) -> typing.Dict[
-            str,
-            typing.Callable[[str], iofilter.MethodParam]]:
-        return {}
 
 
 class RawIO(Raw[BufferedIOBase]):
