@@ -73,10 +73,14 @@ class MethodParam(object):
 return type is unavailable", self.conv)
             return_type = self.conv
 
+        optional_tag = 'Optional. ' if self.default is not None else ''
+        clean_desc = optional_tag + \
+            self.whitespace_regex.sub(' ', self.desc).strip()
+
         text = "{} ({}): {}{}".format(
             self.name,
             return_type,
-            self.whitespace_regex.sub(' ', self.desc).strip(),
+            clean_desc,
             ' (default: {})'.format(self.default) if self.default else '')
 
         return textwrap.fill(text,
