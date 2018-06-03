@@ -59,13 +59,14 @@ class Match(iofilter.IOFilter[iofilter.T]):
         procs = int(number)
 
         if procs <= 0:
-            raise ValueError("Unsupported 'procs' value %d" % procs)
+            raise ValueError(
+                "Unsupported %r value %d" % (cls.PARAM_PROCS, procs))
 
         num_usable_cpus = len(os.sched_getaffinity(0))
         if procs > num_usable_cpus:
             raise ValueError(
-                "'procs' could not be greater than the number of usable \
-CPUs %d" % num_usable_cpus)
+                "%r could not be greater than the number of usable \
+CPUs %d" % (cls.PARAM_PROCS, num_usable_cpus))
 
         return procs
 
