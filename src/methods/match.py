@@ -8,6 +8,8 @@ from socket import socket
 
 import logging
 import typing
+import os
+
 import iofilter
 
 
@@ -34,7 +36,7 @@ class Match(iofilter.IOFilter[iofilter.T]):
         return [
             iofilter.MethodParam(
                 cls.PARAM_FUNC,
-                cls.__convert,
+                cls.__convert_func,
                 'It defines the function check that whether the read \
                 operation should return the byte. This function should only \
                 accpet a single argument as an int value of the byte and \
@@ -44,14 +46,31 @@ class Match(iofilter.IOFilter[iofilter.T]):
         https://docs.python.org/3/library/stdtypes.html#truth-value-testing'),
             iofilter.MethodParam(
                 cls.PARAM_PROCS,
-                int,
+                cls.__convert_procs,
                 'The number of processes to handle the data filtering in \
                 parallel.',
                 1)
         ]
 
     @classmethod
-    def __convert(
+    def __convert_procs(
+            cls: typing.Type['Match'],
+            number: str) -> int:
+        procs = int(number)
+
+        if procs <= 0:
+            raise ValueError("Unsupported 'procs' value %d" % procs)
+
+        num_usable_cpus = len(os.sched_getaffinity(0))
+        if procs > num_usable_cpus:
+            raise ValueError(
+                "'procs' could not be greater than the number of usable \
+CPUs %d" % num_usable_cpus)
+
+        return procs
+
+    @classmethod
+    def __convert_func(
             cls: typing.Type['Match'],
             expr: str) -> typing.Callable[[int], object]:
         try:
