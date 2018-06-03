@@ -7,8 +7,11 @@ import abc
 import logging
 import re
 import typing
+import textwrap
 
 from util import Util
+
+LINE_WIDTH = 79
 
 
 class MethodParam(object):
@@ -19,10 +22,13 @@ class MethodParam(object):
     ParamValue = typing.Union[str, int, typing.Callable]
     ParamConverter = typing.Callable[[str], ParamValue]
 
+    whitespace_regex = re.compile(r'\s+', re.ASCII)
+
     def __init__(
             self: 'MethodParam',
             name: str,
             conv: ParamConverter,
+            desc: str,
             default: ParamValue = None) -> None:
         """Initialize instance for this class.
 
@@ -30,12 +36,14 @@ class MethodParam(object):
             name (str): Name of the method parameter.
             conv (ParamConverter): A function for converting string to the
                 object of desired type (ParamValue).
+            desc (str): The description/help message of this parameter.
             default (ParamValue): The default value of this
                 parameter.
 
         """
         self.name = name
         self.conv = conv
+        self.desc = desc
         self.default = default
 
     def get_value(self: 'MethodParam', string: str) -> 'ParamValue':
@@ -65,10 +73,16 @@ class MethodParam(object):
 return type is unavailable", self.conv)
             return_type = self.conv
 
-        return '{}: {}{}'.format(
+        text = "{} ({}): {}{}".format(
             self.name,
             return_type,
+            self.whitespace_regex.sub(' ', self.desc).strip(),
             ' (default: {})'.format(self.default) if self.default else '')
+
+        return textwrap.fill(text,
+                             LINE_WIDTH,
+                             initial_indent=' ' * 4,
+                             subsequent_indent=' ' * 8)
 
 
 T = typing.TypeVar('T')
@@ -202,7 +216,7 @@ class IOFilter(typing.Generic[T]):
     @classmethod
     def print_desc(cls: typing.Type['IOFilter[T]']) -> None:
         """Print information about method initialization."""
-        separator = '-' * 79
+        separator = '-' * LINE_WIDTH
 
         print(separator)
         print('[MODULE] ' + cls.__module__)
@@ -214,7 +228,7 @@ class IOFilter(typing.Generic[T]):
         if method_params:
             print('[PARAMS] ')
             for paramobj in method_params:
-                print('    ' + str(paramobj))
+                print(paramobj)
         else:
             print('[PARAMS] Extra method parameter is not required.')
 

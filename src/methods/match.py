@@ -10,22 +10,9 @@ import logging
 import typing
 import iofilter
 
-from util import Util
-
 
 class Match(iofilter.IOFilter[iofilter.T]):
-    """Read the bytes that match the function check.
-
-    The parameter func defines the function check that whether the read
-    operation should return the byte. The checking function should only accpet
-    a single argument as an int value representing the byte and return an
-    object that subsequently will be used in bytes filtering based on its truth
-    value.
-
-    Also see truth value testing in Python 3:
-    https://docs.python.org/3/library/stdtypes.html#truth-value-testing
-
-    """
+    """Read the bytes that match the function check."""
 
     logger = logging.getLogger(__name__)
 
@@ -44,8 +31,24 @@ class Match(iofilter.IOFilter[iofilter.T]):
     @classmethod
     def _get_method_params(cls: typing.Type['Match']) -> typing.List[
             iofilter.MethodParam]:
-        return [iofilter.MethodParam(cls.PARAM_FUNC, cls.__convert),
-                iofilter.MethodParam(cls.PARAM_PROCS, int, 1)]
+        return [
+            iofilter.MethodParam(
+                cls.PARAM_FUNC,
+                cls.__convert,
+                'It defines the function check that whether the read \
+                operation should return the byte. This function should only \
+                accpet a single argument as an int value of the byte and \
+                return an object that subsequently will be used in the bytes \
+                filtering based on its truth value. \
+                Also see truth value testing in Python 3: \
+        https://docs.python.org/3/library/stdtypes.html#truth-value-testing'),
+            iofilter.MethodParam(
+                cls.PARAM_PROCS,
+                int,
+                'The number of processes to handle the data filtering in \
+                parallel.',
+                1)
+        ]
 
     @classmethod
     def __convert(

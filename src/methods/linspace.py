@@ -8,15 +8,11 @@ import logging
 import typing
 import iofilter
 
-from util import Util
-
 
 class Linspace(iofilter.IOFilter[iofilter.T]):
     """Read evenly spaced bytes from the underlying stream.
 
-    The space is defined by the parameter step, which is equals to the
-    difference between the index of the current byte and the index of the last
-    byte in the source bytes sequence.
+    The space is defined by the parameter step.
 
     """
 
@@ -30,7 +26,12 @@ class Linspace(iofilter.IOFilter[iofilter.T]):
     @classmethod
     def _get_method_params(cls: typing.Type['Linspace']) -> typing.List[
             iofilter.MethodParam]:
-        return [iofilter.MethodParam(cls.PARAM_STEP, cls.__convert)]
+        return [iofilter.MethodParam(
+            cls.PARAM_STEP,
+            cls.__convert,
+            'The space between the read bytes. It is equals to the difference \
+            between the index of the current byte and the index of the last \
+            byte in the source byte sequence.')]
 
     @classmethod
     def __convert(
