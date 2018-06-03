@@ -41,14 +41,14 @@ class Match(iofilter.IOFilter[iofilter.T]):
     def _get_method_params(cls: typing.Type['Match']) -> typing.Dict[
             str,
             typing.Callable[[str], iofilter.MethodParam]]:
-        return {cls.PARAM_FUNC: cls.convert}
+        return {cls.PARAM_FUNC: cls.__convert}
 
     @classmethod
-    def convert(
+    def __convert(
             cls: typing.Type['Match'],
             expr: str) -> typing.Callable[[int], object]:
         try:
-            func = eval(expr)
+            func = eval(expr)  # pylint: disable=eval-used
         except Exception:
             cls.logger.exception(
                 "Unable to parse function expression: %s", expr)
@@ -70,6 +70,7 @@ class Match(iofilter.IOFilter[iofilter.T]):
 
 
 class MatchIO(Match[BufferedIOBase]):
+    """A subclass to handle reading data from file."""
 
     def __init__(
             self: 'MatchIO',
@@ -120,6 +121,7 @@ class MatchIO(Match[BufferedIOBase]):
 
 
 class MatchSocket(Match[socket]):
+    """A subclass to handle reading data from socket."""
 
     def read(self, size: int) -> bytes:
         """Read data from the socket stream."""

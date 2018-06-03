@@ -29,10 +29,10 @@ class Linspace(iofilter.IOFilter[iofilter.T]):
     def _get_method_params(cls: typing.Type['Linspace']) -> typing.Dict[
             str,
             typing.Callable[[str], iofilter.MethodParam]]:
-        return {cls.PARAM_STEP: cls.convert}
+        return {cls.PARAM_STEP: cls.__convert}
 
     @classmethod
-    def convert(
+    def __convert(
             cls: typing.Type['Linspace'],
             string: str) -> int:
         res = int(string)
@@ -43,6 +43,7 @@ class Linspace(iofilter.IOFilter[iofilter.T]):
 
 
 class LinspaceIO(Linspace[BufferedIOBase]):
+    """A subclass to handle reading data from file."""
 
     def read(self, size: int) -> bytes:
         """Read data from the file stream."""
@@ -66,6 +67,7 @@ class LinspaceIO(Linspace[BufferedIOBase]):
 
 
 class LinspaceSocket(Linspace[socket]):
+    """A subclass to handle reading data from socket."""
 
     def read(self, size: int) -> bytes:
         """Read data from the socket stream."""
