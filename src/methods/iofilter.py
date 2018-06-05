@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from inspect import getfullargspec
+from io import BufferedIOBase
+from socket import socket
 
 import abc
 import logging
@@ -22,14 +24,14 @@ class MethodParam(object):
     ParamValue = typing.Union[str, int, typing.Callable]
     ParamConverter = typing.Callable[[str], ParamValue]
 
-    whitespace_regex = re.compile(r'\s+', re.ASCII)
+    _WHITESPACE_REGEX = re.compile(r'\s+', re.ASCII)
 
     def __init__(
             self: 'MethodParam',
             name: str,
             conv: ParamConverter,
             desc: str,
-            default: ParamValue = None) -> None:
+            default: str = None) -> None:
         """Initialize instance for this class.
 
         Args:
@@ -37,14 +39,13 @@ class MethodParam(object):
             conv (ParamConverter): A function for converting string to the
                 object of desired type (ParamValue).
             desc (str): The description/help message of this parameter.
-            default (ParamValue): The default value of this
-                parameter.
+            default (str): The default value of this parameter.
 
         """
         self.name = name
-        self.conv = conv
-        self.desc = desc
-        self.default = default
+        self.__conv = conv
+        self.__desc = desc
+        self.__default = default
 
     def get_value(self: 'MethodParam', string: str) -> 'ParamValue':
         """Convert string to the object of desired type using the converter.
@@ -55,33 +56,33 @@ class MethodParam(object):
 
         """
         if not string:
-            if self.default is None:
+            if self.__default is None:
                 raise ValueError(
                     "Required method parameter '%s' not found" % self.name)
 
-            return self.default
+            string = self.__default
 
-        return self.conv(string)
+        return self.__conv(string)
 
     def __str__(self: 'MethodParam'):
         """Generate nicely printable string representation for this object."""
         try:
-            return_type = getfullargspec(self.conv).annotations['return']
+            return_type = getfullargspec(self.__conv).annotations['return']
         except (KeyError, TypeError):
             self.logger.debug(
                 "Fallback to show the type of function '%s' because the \
-return type is unavailable", self.conv)
-            return_type = self.conv
+return type is unavailable", self.__conv)
+            return_type = self.__conv
 
-        optional_tag = 'Optional. ' if self.default is not None else ''
+        optional_tag = 'Optional. ' if self.__default is not None else ''
         clean_desc = optional_tag + \
-            self.whitespace_regex.sub(' ', self.desc).strip()
+            self._WHITESPACE_REGEX.sub(' ', self.__desc).strip()
 
         text = "{} ({}): {}{}".format(
             self.name,
             return_type,
             clean_desc,
-            ' (default: {})'.format(self.default) if self.default else '')
+            ' (default: {})'.format(self.__default) if self.__default else '')
 
         return textwrap.fill(text,
                              LINE_WIDTH,
@@ -89,7 +90,7 @@ return type is unavailable", self.conv)
                              subsequent_indent=' ' * 8)
 
 
-T = typing.TypeVar('T')
+T = typing.TypeVar('T', BufferedIOBase, socket)
 
 
 class IOFilter(typing.Generic[T]):
@@ -109,7 +110,7 @@ class IOFilter(typing.Generic[T]):
             bufsize: int,
             **kwargs) -> None:
         """Initialize base attributes for all subclasses."""
-        self._stream = stream
+        self._stream = stream  # type: T
         self.kwargs = kwargs
         self._buffer = bytearray(self._get_bufarray_size(bufsize))
         self.__count = 0
@@ -129,13 +130,13 @@ class IOFilter(typing.Generic[T]):
 
         return bytes()
 
-    def get_stream(self: 'IOFilter[T]') -> T:
-        """Return the internal stream object."""
-        return self._stream
-
     def get_count(self: 'IOFilter[T]') -> int:
         """Get the total number of raw bytes have read."""
         return self.__count
+
+    def close(self: 'IOFilter[T]') -> None:
+        """Close associated resources."""
+        self._stream.close()
 
     def _get_bufarray_size(self: 'IOFilter[T]', bufsize: int) -> int:
         """Return the size to be used to create the buffer bytearray.
@@ -149,6 +150,7 @@ class IOFilter(typing.Generic[T]):
     def _get_or_create_bufview(self: 'IOFilter[T]') -> memoryview:
         """Return the memoryview for the bytearray buffer."""
         if not hasattr(self, '_bufview'):
+            # pylint: disable=attribute-defined-outside-init
             self._bufview = memoryview(self._buffer)
         return self._bufview
 
@@ -190,7 +192,7 @@ class IOFilter(typing.Generic[T]):
 
             extra_args_dict[pair[0].strip()] = pair[1].strip()
 
-        cls.logger.info("[method: %s] [input parameters: %s]",
+        cls.logger.info("[method: %s] [method parameters: %s]",
                         cls.__module__, extra_args_dict)
 
         method_params = cls._get_method_params()

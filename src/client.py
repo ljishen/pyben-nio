@@ -133,7 +133,7 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
                              else '')
     except ValueError:
         logger.exception(
-            "Fail to read data from buffered stream %r", iofilter.get_stream())
+            "Fail to read data from buffered stream %r", sock)
         raise
     finally:
         t_end = dt.now().timestamp()
@@ -142,7 +142,7 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
         logger.info("Received %d bytes of data in %s seconds \
 (bitrate: %s bit/s)",
                     recvd, dur, recvd * 8 / dur)
-        iofilter.get_stream().close()
+        iofilter.close()
         logger.info("Socket closed")
 
     return t_start, t_end, recvd, iofilter.get_count()

@@ -180,6 +180,8 @@ def __do_start(args_ns):
         sock.close()
         sock = None
         file_obj.close()
+        if not args_ns.zerocopy:
+            iofilter.close()
         raise
 
     logger.info("Accepted incoming connection %s from client. \
@@ -229,7 +231,9 @@ Sending data ...", client_addr)
         sock.close()
         sock = None
         file_obj.close()
-        logger.info("Sockets closed, now exiting")
+        if not args_ns.zerocopy:
+            iofilter.close()
+        logger.info("Resources closed, now exiting")
 
 
 def main():
@@ -246,7 +250,8 @@ workload support.'
 
 if __name__ == "__main__":
     logging.basicConfig(
-        format='%(asctime)s | %(name)-16s | %(levelname)-8s | %(message)s',
+        format='%(asctime)s | %(name)-16s | \
+%(levelname)-8s | PID=%(process)d | %(message)s',
         level=logging.DEBUG)
     logger = logging.getLogger('server')  # pylint: disable=C0103
 

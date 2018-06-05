@@ -24,6 +24,7 @@ class Util(object):
         return [name for _, name, _ in walk_packages(methods.__path__)
                 if name != 'iofilter']
 
+    # pylint: disable=inconsistent-return-statements
     @staticmethod
     def get_classobj_of(method, stream_type=None):
         """Get the class object according to the method name and stream type.
@@ -57,7 +58,14 @@ class Util(object):
                     # For Python 3.5
                     bases = cls_obj.__bases__
 
-                type_arg = bases[0].__args__[0]
+                base = bases[0]
+                if not hasattr(base, '__args__'):
+                    continue
+
+                if not base.__args__:
+                    continue
+
+                type_arg = base.__args__[0]
                 if issubclass(stream_type, type_arg):
                     Util.logger.debug("[method class: %r]", cls_obj)
                     return cls_obj
@@ -72,8 +80,9 @@ class Util(object):
                 "No class object of method %r found for stream type %s" %
                 (method, stream_type)))
 
+    # pylint: disable=inconsistent-return-statements
     @staticmethod
-    def human2bytes(size):
+    def human2bytes(size: str) -> int:
         """Convert the human readable size to the size in bytes."""
         if '.' in size:
             Util.log_and_raise(
