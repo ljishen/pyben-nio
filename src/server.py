@@ -141,14 +141,15 @@ def __send(left, bufsize, iofilter, client_s):
     # pylint: disable=no-member
     num_sent = client_s.send(bytes_obj)
 
+    byte_length = len(bytes_obj)
     if logger.isEnabledFor(logging.DEBUG):
         bytes_summary = bytes(bytes_obj[:50])
         logger.debug("Sent %d bytes of data (summary: %r%s)",
                      num_sent,
                      bytes_summary,
-                     '...' if len(bytes_obj) > len(bytes_summary) else '')
+                     '...' if byte_length > len(bytes_summary) else '')
 
-    return num_sent, ctrl_num
+    return num_sent, byte_length, ctrl_num
 
 
 def __do_start(args_ns):
@@ -190,6 +191,7 @@ Sending data ...", client_addr)
 
     left = args_ns.size
     total_sent = 0
+    total_read = 0
 
     t_start = dt.now().timestamp()
     try:
@@ -197,10 +199,12 @@ Sending data ...", client_addr)
             if args_ns.zerocopy:
                 ctrl_num = __zerosend(left, fsize, file_obj, client_s)
                 total_sent += ctrl_num
+                total_read += ctrl_num
             else:
-                num_sent, ctrl_num = __send(
+                num_sent, num_read, ctrl_num = __send(
                     left, args_ns.bufsize, iofilter, client_s)
                 total_sent += num_sent
+                total_read += num_read
 
             left -= ctrl_num
 
@@ -213,15 +217,15 @@ Sending data ...", client_addr)
             # figure out the number of bytes which were sent.
             # https://docs.python.org/3/library/socket.html#socket.socket.sendfile
             num_sent = file_obj.tell()
-            left -= num_sent
             total_sent += num_sent
+            total_read += num_sent
     except ValueError:
         logger.exception(
             "Fail to read data from buffered stream %r", file_obj.name)
     finally:
-        __make_summary(args_ns,
+        __make_summary(args_ns.zerocopy,
                        t_start,
-                       left,
+                       total_read,
                        iofilter.get_count(),
                        total_sent)
 
@@ -234,12 +238,16 @@ Sending data ...", client_addr)
         logger.info("Resources closed, now exiting")
 
 
-def __make_summary(args_ns, t_start, left, total_raw_bytes_read, total_sent):
+def __make_summary(
+        zerocopy,
+        t_start,
+        total_read,
+        total_raw_bytes_read,
+        total_sent):
     t_dur = dt.now().timestamp() - t_start
-    total_read = args_ns.size - left
 
     raw_bytes_read_info = ''
-    if not args_ns.zerocopy:
+    if not zerocopy:
         if total_raw_bytes_read:
             raw_bytes_read_info = ' (raw {:d} bytes, {:.3f}%)'.format(
                 total_raw_bytes_read,

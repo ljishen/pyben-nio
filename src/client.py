@@ -117,7 +117,7 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
         while left > 0:
             num_bys = min(args_ns.bufsize, left)
             bytes_obj, ctrl_num = iofilter.read(num_bys)
-            if not bytes_obj:
+            if not ctrl_num:
                 break
 
             byte_mem.extend(bytes_obj)
@@ -139,8 +139,8 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
         t_end = dt.now().timestamp()
         t_dur = t_end - t_start
         recvd = size - left
-        logger.info("Received %d bytes (raw %d bytes) | Duration %s seconds | \
-Bitrate %s bit/s",
+        logger.info("[Received: %d bytes (raw %d bytes)] [Duration: %s seconds] \
+[Bitrate: %s bit/s]",
                     recvd,
                     iofilter.get_count(),
                     t_dur, recvd * 8 / t_dur)

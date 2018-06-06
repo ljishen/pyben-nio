@@ -9,6 +9,7 @@ from io import BufferedIOBase
 from multiprocessing import Pool
 from socket import socket
 
+import abc
 import logging
 import typing
 import os
@@ -44,7 +45,7 @@ class Match(iofilter.IOFilter[iofilter.T]):
             iofilter.MethodParam(
                 cls.PARAM_SIZETYPE,
                 cls.__convert_size_type,
-                'Control the size parameter whether it is the size of data \
+                'Control the size parameter whether it is the size of the data \
                 filtering result (AFTER) or the size of total data read \
                 (BEFORE). Choices: [BEFORE(B), AFTER(A)].',
                 'AFTER'
@@ -92,6 +93,23 @@ class Match(iofilter.IOFilter[iofilter.T]):
                              % expr)
 
         return func
+
+    def read(self: 'Match', size: int) -> typing.Tuple[bytes, int]:
+        """Read data from the underlying stream."""
+        super().read(size)
+
+        if self.kwargs[self.PARAM_SIZETYPE] == self.SizeType.BEFORE:
+            return self._read_before(size)
+
+        return self._read_after(size)
+
+    @abc.abstractmethod
+    def _read_before(self: 'Match', size: int) -> typing.Tuple[bytes, int]:
+        pass
+
+    @abc.abstractmethod
+    def _read_after(self: 'Match', size: int) -> typing.Tuple[bytes, int]:
+        pass
 
 
 # pylint: disable=invalid-name
@@ -202,10 +220,55 @@ class MatchIO(Match[BufferedIOBase]):
 
         return work_sizes
 
-    def read(self, size: int) -> typing.Tuple[bytes, int]:
-        """Read data from the file stream."""
-        super().read(size)
+    def _read_before(self: 'MatchIO', size: int) -> typing.Tuple[bytes, int]:
+        view = self._get_or_create_bufview()
 
+        start = 0
+        while start < size:
+            nbytes = self._stream.readinto(view[start:size])
+            if nbytes < size - start:
+                self._stream.seek(0)
+
+            start += nbytes
+
+        self.__do_filter(size)
+        return (self.__get_and_update_res(len(self._resbuf)), size)
+
+    def __do_filter(self: 'MatchIO', nbytes: int) -> None:
+        self._incr_count(nbytes)
+        view = self._get_or_create_bufview()
+
+        t_start = dt.now().timestamp()
+
+        if self._procs_pool is None:
+            _check(view[:nbytes], res=self._resbuf)
+        else:
+            work_sizes = self.__allot_work_sizes(nbytes)
+            self.logger.debug("work sizes of processes in bytes: %r",
+                              work_sizes)
+
+            prev_offset = 0
+            future_results = []
+            for wsize in work_sizes:
+                next_offset = wsize + prev_offset
+                future_results.append(
+                    self._procs_pool.apply_async(
+                        _check,
+                        (bytearray(view[prev_offset:next_offset]),))
+                )
+                prev_offset = next_offset
+
+            for f_res in future_results:
+                self._resbuf.extend(f_res.get())
+
+        if self.logger.isEnabledFor(logging.DEBUG):
+            t_dur = dt.now().timestamp() - t_start
+            self.logger.debug(
+                "Took %s seconds to filter %d bytes of data",
+                t_dur,
+                nbytes)
+
+    def _read_after(self: 'MatchIO', size: int) -> typing.Tuple[bytes, int]:
         if len(self._resbuf) >= size:
             return (self.__get_and_update_res(size), size)
 
@@ -217,37 +280,7 @@ class MatchIO(Match[BufferedIOBase]):
                 self._stream.seek(0)
 
             if nbytes:
-                self._incr_count(nbytes)
-
-                t_start = dt.now().timestamp()
-
-                if self._procs_pool is None:
-                    _check(view[:nbytes], res=self._resbuf)
-                else:
-                    work_sizes = self.__allot_work_sizes(nbytes)
-                    self.logger.debug("work sizes of processes in bytes: %r",
-                                      work_sizes)
-
-                    prev_offset = 0
-                    future_results = []
-                    for wsize in work_sizes:
-                        next_offset = wsize + prev_offset
-                        future_results.append(
-                            self._procs_pool.apply_async(
-                                _check,
-                                (bytearray(view[prev_offset:next_offset]),))
-                        )
-                        prev_offset = next_offset
-
-                    for f_res in future_results:
-                        self._resbuf.extend(f_res.get())
-
-                if self.logger.isEnabledFor(logging.DEBUG):
-                    t_dur = dt.now().timestamp() - t_start
-                    self.logger.debug(
-                        "Took %s seconds to filter %d bytes of data",
-                        t_dur,
-                        nbytes)
+                self.__do_filter(nbytes)
 
                 if len(self._resbuf) >= size:
                     self.__first_read = False
@@ -279,10 +312,8 @@ class MatchSocket(Match[socket]):
         super().__init__(stream, bufsize, **kwargs)
         self.__byteque = deque()  # type: typing.Deque[int]
 
-    def read(self, size: int) -> typing.Tuple[bytes, int]:
-        """Read data from the socket stream."""
-        super().read(size)
-
+    def _read_after(self: 'MatchSocket', size: int) -> typing.Tuple[
+            bytes, int]:
         res = bytearray()
         view = self._get_or_create_bufview()
         func = self.kwargs[self.PARAM_FUNC]
@@ -305,3 +336,20 @@ class MatchSocket(Match[socket]):
 
             self._incr_count(nbytes)
             self.__byteque.extend(view[:nbytes])
+
+    def _read_before(self: 'MatchSocket', size: int) -> typing.Tuple[
+            bytes, int]:
+        res = bytearray()
+        view = self._get_or_create_bufview()
+
+        nbytes = self._stream.recv_into(view, size)
+        if not nbytes:
+            return (res, 0)
+
+        self._incr_count(nbytes)
+
+        func = self.kwargs[self.PARAM_FUNC]
+        for byt_val in view[:nbytes]:
+            if func(byt_val):
+                res.append(byt_val)
+        return (res, nbytes)
