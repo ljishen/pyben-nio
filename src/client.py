@@ -111,6 +111,7 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
 
     left = size
     byte_mem = deque(maxlen=mem_limit_bs)  # type: typing.Deque[int]
+    recvd = 0
 
     t_start = dt.now().timestamp()
     try:
@@ -121,7 +122,10 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
                 break
 
             byte_mem.extend(bytes_obj)
+
             byte_length = len(bytes_obj)
+            recvd += byte_length
+
             left -= ctrl_num
 
             if logger.isEnabledFor(logging.DEBUG):
@@ -138,7 +142,6 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
     finally:
         t_end = dt.now().timestamp()
         t_dur = t_end - t_start
-        recvd = size - left
         logger.info("[Received: %d bytes (raw %d bytes)] [Duration: %s seconds] \
 [Bitrate: %s bit/s]",
                     recvd,

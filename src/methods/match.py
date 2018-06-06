@@ -158,12 +158,12 @@ class MatchIO(Match[BufferedIOBase]):
         else:
             num_usable_cpus = len(os.sched_getaffinity(0))
             if num_procs > num_usable_cpus:
-                kwargs[self.PARAM_MINPROCWORKSIZE] = \
+                self.kwargs[self.PARAM_MINPROCWORKSIZE] = \
                     int(bufsize / (num_usable_cpus - 0.5))
                 self.logger.warning(
-                    "Not enough CPU cores available. Change %r to %d",
+                    "Not enough CPU cores available. Change %r to %d bytes",
                     self.PARAM_MINPROCWORKSIZE,
-                    kwargs[self.PARAM_MINPROCWORKSIZE])
+                    self.kwargs[self.PARAM_MINPROCWORKSIZE])
                 num_procs = num_usable_cpus
 
         self._procs_pool = None
