@@ -12,6 +12,7 @@ from util import Util
 
 
 class ParameterParser(ArgumentParser):
+    """Subclass that helps to setup common arguments."""
 
     _START_PARSER_NAME = 'start'
     _DESC_PARSER_NAME = 'desc'
@@ -33,7 +34,6 @@ class ParameterParser(ArgumentParser):
         except AttributeError:
             pass
 
-        # pylint: disable=missing-super-argument
         super()._check_value(action, value)
 
     @staticmethod
@@ -51,7 +51,7 @@ class ParameterParser(ArgumentParser):
         items = re.split(';', string.strip().rstrip(';'))
         return [i.strip() for i in items]
 
-    def prepare(self):
+    def prepare(self, stream_type):
         """Prepare and config the basic common settings.
 
         Returns:
@@ -90,7 +90,7 @@ class ParameterParser(ArgumentParser):
             required=False)
         desc_parser.set_defaults(
             func=lambda arg_attrs_ns: Util.get_classobj_of(
-                arg_attrs_ns.method).print_desc())
+                arg_attrs_ns.method, stream_type).print_desc())
 
         return start_parser
 

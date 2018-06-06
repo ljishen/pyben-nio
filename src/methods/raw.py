@@ -15,7 +15,7 @@ class Raw(iofilter.IOFilter[iofilter.T]):
 
 
 class RawIO(Raw[BufferedIOBase]):
-    """A subclass to handle reading data from file."""
+    """Read from file and return raw data without any filtering."""
 
     def read(self, size: int) -> bytes:
         """Read data from the file stream."""
@@ -34,7 +34,7 @@ class RawIO(Raw[BufferedIOBase]):
 
 
 class RawSocket(Raw[socket]):
-    """A subclass to handle reading data from socket."""
+    """Read from socket and return raw data without any filtering."""
 
     def read(self, size: int) -> bytes:
         """Read data from the socket stream."""

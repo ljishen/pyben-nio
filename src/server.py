@@ -3,6 +3,7 @@
 
 from argparse import Namespace
 from datetime import datetime as dt
+from io import BufferedIOBase
 
 import logging
 import os
@@ -242,7 +243,7 @@ def main():
 workload support.'
 
     parser = ParameterParser(description=prog_desc)
-    start_parser = parser.prepare()
+    start_parser = parser.prepare(BufferedIOBase)
     __populate_start_parser(start_parser)
 
     parser.parse_args()

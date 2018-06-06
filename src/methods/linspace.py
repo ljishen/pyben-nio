@@ -44,7 +44,11 @@ class Linspace(iofilter.IOFilter[iofilter.T]):
 
 
 class LinspaceIO(Linspace[BufferedIOBase]):
-    """A subclass to handle reading data from file."""
+    """Read evenly spaced bytes from file.
+
+    The space is defined by the parameter step.
+
+    """
 
     def read(self, size: int) -> bytes:
         """Read data from the file stream."""
@@ -68,7 +72,11 @@ class LinspaceIO(Linspace[BufferedIOBase]):
 
 
 class LinspaceSocket(Linspace[socket]):
-    """A subclass to handle reading data from socket."""
+    """Read evenly spaced bytes from socket.
+
+    The space is defined by the parameter step.
+
+    """
 
     def read(self, size: int) -> bytes:
         """Read data from the socket stream."""

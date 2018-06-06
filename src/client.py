@@ -204,7 +204,7 @@ def main():
 workload support.'
 
     parser = ParameterParser(description=prog_desc)
-    start_parser = parser.prepare()
+    start_parser = parser.prepare(socket.socket)
     __populate_start_parser(start_parser)
 
     parser.parse_args()

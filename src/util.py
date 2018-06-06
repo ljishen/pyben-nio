@@ -26,7 +26,7 @@ class Util(object):
 
     # pylint: disable=inconsistent-return-statements
     @staticmethod
-    def get_classobj_of(method, stream_type=None):
+    def get_classobj_of(method, stream_type):
         """Get the class object according to the method name and stream type.
 
         Args:
@@ -44,33 +44,28 @@ class Util(object):
             if cls_obj.__module__ != module.__name__:
                 continue
 
-            if stream_type:
-                if inspect.isabstract(cls_obj):
-                    continue
+            if inspect.isabstract(cls_obj):
+                continue
 
-                if hasattr(cls_obj, '__orig_bases__'):
-                    # For Python 3.6
-                    # The original bases are stored as __orig_bases__ in the
-                    # class namespace
-                    # https://www.python.org/dev/peps/pep-0560/#mro-entries
-                    bases = cls_obj.__orig_bases__
-                else:
-                    # For Python 3.5
-                    bases = cls_obj.__bases__
+            if hasattr(cls_obj, '__orig_bases__'):
+                # For Python 3.6
+                # The original bases are stored as __orig_bases__ in the
+                # class namespace
+                # https://www.python.org/dev/peps/pep-0560/#mro-entries
+                bases = cls_obj.__orig_bases__
+            else:
+                # For Python 3.5
+                bases = cls_obj.__bases__
 
-                base = bases[0]
-                if not hasattr(base, '__args__'):
-                    continue
+            base = bases[0]
+            if not hasattr(base, '__args__'):
+                continue
 
-                if not base.__args__:
-                    continue
+            if not base.__args__:
+                continue
 
-                type_arg = base.__args__[0]
-                if issubclass(stream_type, type_arg):
-                    Util.logger.debug("[method class: %r]", cls_obj)
-                    return cls_obj
-
-            elif inspect.isabstract(cls_obj):
+            type_arg = base.__args__[0]
+            if issubclass(stream_type, type_arg):
                 Util.logger.debug("[method class: %r]", cls_obj)
                 return cls_obj
 
