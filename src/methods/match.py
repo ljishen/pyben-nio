@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import deque
+from datetime import datetime as dt
 from inspect import getfullargspec
 from io import BufferedIOBase
 from multiprocessing import Pool
@@ -159,22 +160,19 @@ class MatchIO(Match[BufferedIOBase]):
             self._resbuf = self._resbuf[size:]
         return ret_res
 
-    def __allot_work_offsets(
+    def __allot_work_sizes(
             self: 'Match', total_size: int) -> typing.List[int]:
         min_proc_worksize = self.kwargs[self.PARAM_MINPROCWORKSIZE]
 
         least_num_procs = total_size // min_proc_worksize
-        work_offsets = [min_proc_worksize] * least_num_procs
+        work_sizes = [min_proc_worksize] * least_num_procs
         left = total_size - least_num_procs * min_proc_worksize
         if left >= min_proc_worksize / 2:
-            work_offsets.append(left)
+            work_sizes.append(left)
         else:
-            work_offsets[-1] += left
+            work_sizes[-1] += left
 
-        for idx in range(1, least_num_procs):
-            work_offsets[idx] += work_offsets[idx - 1]
-
-        return work_offsets
+        return work_sizes
 
     def read(self, size: int) -> bytes:
         """Read data from the file stream."""
@@ -193,22 +191,35 @@ class MatchIO(Match[BufferedIOBase]):
             if nbytes:
                 self._incr_count(nbytes)
 
+                t_start = dt.now().timestamp()
+
                 if self._procs_pool is None:
                     _check(view[:nbytes], res=self._resbuf)
                 else:
-                    work_offsets = self.__allot_work_offsets(nbytes)
+                    work_sizes = self.__allot_work_sizes(nbytes)
+                    self.logger.debug("work sizes of processes in bytes: %r",
+                                      work_sizes)
+
                     prev_offset = 0
                     future_results = []
-                    for offset in work_offsets:
+                    for wsize in work_sizes:
+                        next_offset = wsize + prev_offset
                         future_results.append(
                             self._procs_pool.apply_async(
                                 _check,
-                                (bytearray(view[prev_offset:offset]),))
+                                (bytearray(view[prev_offset:next_offset]),))
                         )
-                        prev_offset = offset
+                        prev_offset = next_offset
 
                     for f_res in future_results:
                         self._resbuf.extend(f_res.get())
+
+                if self.logger.isEnabledFor(logging.DEBUG):
+                    t_dur = dt.now().timestamp() - t_start
+                    self.logger.debug(
+                        "Took %s seconds to filter %d bytes of data",
+                        t_dur,
+                        nbytes)
 
                 if len(self._resbuf) >= size:
                     self.__first_read = False
