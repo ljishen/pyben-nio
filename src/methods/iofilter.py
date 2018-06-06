@@ -21,7 +21,7 @@ class MethodParam(object):
 
     logger = logging.getLogger(__name__)
 
-    ParamValue = typing.Union[str, int, typing.Callable]
+    ParamValue = typing.Any
     ParamConverter = typing.Callable[[str], ParamValue]
 
     _WHITESPACE_REGEX = re.compile(r'\s+', re.ASCII)
@@ -82,7 +82,7 @@ return type is unavailable", self.__conv)
             self.name,
             return_type,
             clean_desc,
-            ' (default: {})'.format(self.__default) if self.__default else '')
+            ' (Default: {})'.format(self.__default) if self.__default else '')
 
         return textwrap.fill(text,
                              LINE_WIDTH,

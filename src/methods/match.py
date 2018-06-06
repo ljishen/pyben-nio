@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import deque
+from enum import Enum
 from datetime import datetime as dt
 from inspect import getfullargspec
 from io import BufferedIOBase
@@ -24,6 +25,7 @@ class Match(iofilter.IOFilter[iofilter.T]):
     logger = logging.getLogger(__name__)
 
     PARAM_FUNC = 'func'
+    PARAM_SIZETYPE = 'sztype'
 
     @classmethod
     def _get_method_params(cls: typing.Type['Match']) -> typing.List[
@@ -38,8 +40,34 @@ class Match(iofilter.IOFilter[iofilter.T]):
                 return an object that subsequently will be used in the bytes \
                 filtering based on its truth value. \
                 Also see truth value testing in Python 3: \
-        https://docs.python.org/3/library/stdtypes.html#truth-value-testing')
+        https://docs.python.org/3/library/stdtypes.html#truth-value-testing'),
+            iofilter.MethodParam(
+                cls.PARAM_SIZETYPE,
+                cls.__convert_size_type,
+                'Control the size parameter whether it is the size of data \
+                filtering result (AFTER) or the size of total data read \
+                (BEFORE). Choices: [BEFORE(B), AFTER(A)].',
+                'AFTER'
+            )
         ]
+
+    class SizeType(Enum):
+        """Define the choices of parameter sztype."""
+
+        BEFORE = 1
+        AFTER = 2
+
+    @classmethod
+    def __convert_size_type(
+            cls: typing.Type['Match'],
+            string: str) -> 'SizeType':
+        if string == 'A' or string == cls.SizeType.AFTER.name:
+            return cls.SizeType.AFTER
+        elif string == 'B' or string == cls.SizeType.BEFORE.name:
+            return cls.SizeType.BEFORE
+
+        raise ValueError(
+            "Unknow %r value %s" % (cls.PARAM_SIZETYPE, string))
 
     @classmethod
     def __convert_func(
