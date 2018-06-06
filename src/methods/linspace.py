@@ -50,7 +50,7 @@ class LinspaceIO(Linspace[BufferedIOBase]):
 
     """
 
-    def read(self, size: int) -> bytes:
+    def read(self, size: int) -> typing.Tuple[bytes, int]:
         """Read data from the file stream."""
         super().read(size)
 
@@ -68,7 +68,7 @@ class LinspaceIO(Linspace[BufferedIOBase]):
             start += nbytes
 
         self._incr_count(end)
-        return view[:end][::step].tobytes()
+        return (view[:end][::step].tobytes(), size)
 
 
 class LinspaceSocket(Linspace[socket]):
@@ -78,7 +78,7 @@ class LinspaceSocket(Linspace[socket]):
 
     """
 
-    def read(self, size: int) -> bytes:
+    def read(self, size: int) -> typing.Tuple[bytes, int]:
         """Read data from the socket stream."""
         super().read(size)
 
@@ -97,4 +97,6 @@ class LinspaceSocket(Linspace[socket]):
             left -= nbytes
 
         self._incr_count(start)
-        return view[:start][::step].tobytes()
+
+        res_bytes = view[:start][::step].tobytes()
+        return (res_bytes, len(res_bytes))

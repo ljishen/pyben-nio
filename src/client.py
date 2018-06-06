@@ -116,20 +116,20 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
     try:
         while left > 0:
             num_bys = min(args_ns.bufsize, left)
-            bytes_obj = iofilter.read(num_bys)
+            bytes_obj, ctrl_num = iofilter.read(num_bys)
             if not bytes_obj:
                 break
 
             byte_mem.extend(bytes_obj)
-            obj_s = len(bytes_obj)
-            left -= obj_s
+            byte_length = len(bytes_obj)
+            left -= ctrl_num
 
             if logger.isEnabledFor(logging.DEBUG):
                 bytes_summary = bytes(bytes_obj[:50])
                 logger.debug("Received %d bytes of data (summary %r%s)",
-                             obj_s,
+                             byte_length,
                              bytes_summary,
-                             '...' if len(bytes_obj) > len(bytes_summary)
+                             '...' if byte_length > len(bytes_summary)
                              else '')
     except ValueError:
         logger.exception(
@@ -137,11 +137,13 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
         raise
     finally:
         t_end = dt.now().timestamp()
-        dur = t_end - t_start
+        t_dur = t_end - t_start
         recvd = size - left
-        logger.info("Received %d bytes of data in %s seconds \
-(bitrate: %s bit/s)",
-                    recvd, dur, recvd * 8 / dur)
+        logger.info("Received %d bytes (raw %d bytes) | Duration %s seconds | \
+Bitrate %s bit/s",
+                    recvd,
+                    iofilter.get_count(),
+                    t_dur, recvd * 8 / t_dur)
         iofilter.close()
         logger.info("Socket closed")
 
@@ -178,22 +180,22 @@ def __do_start(args_ns):
                    for idx, size in enumerate(p_sizes)]
         multi_results = [f.get() for f in futures]
 
-    t_starts, t_ends, recvds, raw_byte_counts = zip(*multi_results)
+    t_starts, t_ends, recvds, raw_bytes_reads = zip(*multi_results)
     total_dur = max(t_ends) - min(t_starts)
     total_recvd = sum(recvds)
 
-    total_raw_bytes = sum(raw_byte_counts)
+    total_raw_bytes_read = sum(raw_bytes_reads)
 
     # We might not receive anything if the server failed.
-    raw_bytes_info = ''
-    if total_raw_bytes:
-        raw_bytes_info = ' (raw {:d}, {:.3f}%)'.format(
-            total_raw_bytes, total_recvd / total_raw_bytes * 100)
+    raw_bytes_read_info = ''
+    if total_raw_bytes_read:
+        raw_bytes_read_info = ' (raw {:d} bytes, {:.3f}%)'.format(
+            total_raw_bytes_read, total_recvd / total_raw_bytes_read * 100)
 
-    logger.info("[SUMMARY] Total received %d%s bytes of data in %s seconds \
-(bitrate: %s bit/s)",
+    logger.info("[SUMMARY] [Received: %d bytes%s] [Duration: %s seconds] \
+[Bitrate: %s bit/s]",
                 total_recvd,
-                raw_bytes_info,
+                raw_bytes_read_info,
                 total_dur,
                 total_recvd * 8 / total_dur)
 

@@ -136,19 +136,19 @@ def __zerosend(left, fsize, file_obj, client_s):
 
 def __send(left, bufsize, iofilter, client_s):
     bys = min(left, bufsize)
-    bytes_obj = iofilter.read(bys)
+    bytes_obj, ctrl_num = iofilter.read(bys)
 
     # pylint: disable=no-member
-    sent = client_s.send(bytes_obj)
+    num_sent = client_s.send(bytes_obj)
 
     if logger.isEnabledFor(logging.DEBUG):
         bytes_summary = bytes(bytes_obj[:50])
         logger.debug("Sent %d bytes of data (summary: %r%s)",
-                     sent,
+                     num_sent,
                      bytes_summary,
                      '...' if len(bytes_obj) > len(bytes_summary) else '')
 
-    return sent
+    return num_sent, ctrl_num
 
 
 def __do_start(args_ns):
@@ -189,15 +189,20 @@ def __do_start(args_ns):
 Sending data ...", client_addr)
 
     left = args_ns.size
+    total_sent = 0
+
     t_start = dt.now().timestamp()
     try:
         while left > 0:
             if args_ns.zerocopy:
-                num_sent = __zerosend(left, fsize, file_obj, client_s)
+                ctrl_num = __zerosend(left, fsize, file_obj, client_s)
+                total_sent += ctrl_num
             else:
-                num_sent = __send(left, args_ns.bufsize, iofilter, client_s)
+                num_sent, ctrl_num = __send(
+                    left, args_ns.bufsize, iofilter, client_s)
+                total_sent += num_sent
 
-            left -= num_sent
+            left -= ctrl_num
 
     # pylint: disable=undefined-variable
     except (ConnectionResetError, BrokenPipeError):
@@ -207,26 +212,18 @@ Sending data ...", client_addr)
             # in case of error in which case file.tell() can be used to
             # figure out the number of bytes which were sent.
             # https://docs.python.org/3/library/socket.html#socket.socket.sendfile
-            left -= file_obj.tell()
+            num_sent = file_obj.tell()
+            left -= num_sent
+            total_sent += num_sent
     except ValueError:
         logger.exception(
             "Fail to read data from buffered stream %r", file_obj.name)
     finally:
-        dur = dt.now().timestamp() - t_start
-        sent = args_ns.size - left
-
-        raw_bytes_info = ''
-        if not args_ns.zerocopy:
-            total_raw_bytes = iofilter.get_count()
-            if total_raw_bytes:
-                raw_bytes_info = ' (raw {:d}, {:.3f}%)'.format(
-                    total_raw_bytes, sent / total_raw_bytes * 100)
-
-        logger.info("Total sent %d%s bytes of data in %s seconds \
-(bitrate: %s bit/s)",
-                    sent,
-                    raw_bytes_info,
-                    dur, sent * 8 / dur)
+        __make_summary(args_ns,
+                       t_start,
+                       left,
+                       iofilter.get_count(),
+                       total_sent)
 
         client_s.close()
         sock.close()
@@ -235,6 +232,26 @@ Sending data ...", client_addr)
         if not args_ns.zerocopy:
             iofilter.close()
         logger.info("Resources closed, now exiting")
+
+
+def __make_summary(args_ns, t_start, left, total_raw_bytes_read, total_sent):
+    t_dur = dt.now().timestamp() - t_start
+    total_read = args_ns.size - left
+
+    raw_bytes_read_info = ''
+    if not args_ns.zerocopy:
+        if total_raw_bytes_read:
+            raw_bytes_read_info = ' (raw {:d} bytes, {:.3f}%)'.format(
+                total_raw_bytes_read,
+                total_read / total_raw_bytes_read * 100)
+
+    logger.info("[SUMMARY] [Sent: %d bytes] [Read: %d bytes%s] \
+[Duration: %s seconds] [Bitrate: %s bit/s]",
+                total_sent,
+                total_read,
+                raw_bytes_read_info,
+                t_dur,
+                total_sent * 8 / t_dur)
 
 
 def main():

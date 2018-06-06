@@ -202,12 +202,12 @@ class MatchIO(Match[BufferedIOBase]):
 
         return work_sizes
 
-    def read(self, size: int) -> bytes:
+    def read(self, size: int) -> typing.Tuple[bytes, int]:
         """Read data from the file stream."""
         super().read(size)
 
         if len(self._resbuf) >= size:
-            return self.__get_and_update_res(size)
+            return (self.__get_and_update_res(size), size)
 
         view = self._get_or_create_bufview()
 
@@ -251,7 +251,7 @@ class MatchIO(Match[BufferedIOBase]):
 
                 if len(self._resbuf) >= size:
                     self.__first_read = False
-                    return self.__get_and_update_res(size)
+                    return (self.__get_and_update_res(size), size)
 
             if (self.__first_read
                     and self._stream.tell() == 0
@@ -279,7 +279,7 @@ class MatchSocket(Match[socket]):
         super().__init__(stream, bufsize, **kwargs)
         self.__byteque = deque()  # type: typing.Deque[int]
 
-    def read(self, size: int) -> bytes:
+    def read(self, size: int) -> typing.Tuple[bytes, int]:
         """Read data from the socket stream."""
         super().read(size)
 
@@ -295,13 +295,13 @@ class MatchSocket(Match[socket]):
                         if func(byt_val):
                             res.append(byt_val)
                             if len(res) == size:
-                                return res
+                                return (res, size)
                 except IndexError:
                     pass
 
             nbytes = self._stream.recv_into(view, size)
             if not nbytes:
-                return res
+                return (res, len(res))
 
             self._incr_count(nbytes)
             self.__byteque.extend(view[:nbytes])

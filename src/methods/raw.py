@@ -5,6 +5,8 @@ from io import BufferedIOBase
 from socket import socket
 
 import logging
+import typing
+
 import iofilter
 
 
@@ -17,7 +19,7 @@ class Raw(iofilter.IOFilter[iofilter.T]):
 class RawIO(Raw[BufferedIOBase]):
     """Read from file and return raw data without any filtering."""
 
-    def read(self, size: int) -> bytes:
+    def read(self, size: int) -> typing.Tuple[bytes, int]:
         """Read data from the file stream."""
         super().read(size)
 
@@ -30,17 +32,17 @@ class RawIO(Raw[BufferedIOBase]):
 
             if nbytes:
                 self._incr_count(nbytes)
-                return self._buffer[:nbytes]
+                return (self._buffer[:nbytes], nbytes)
 
 
 class RawSocket(Raw[socket]):
     """Read from socket and return raw data without any filtering."""
 
-    def read(self, size: int) -> bytes:
+    def read(self, size: int) -> typing.Tuple[bytes, int]:
         """Read data from the socket stream."""
         super().read(size)
 
         nbytes = self._stream.recv_into(self._buffer, size)
         self._incr_count(nbytes)
 
-        return self._buffer[:nbytes]
+        return (self._buffer[:nbytes], nbytes)

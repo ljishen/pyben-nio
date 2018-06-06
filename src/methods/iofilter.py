@@ -116,19 +116,23 @@ class IOFilter(typing.Generic[T]):
         self.__count = 0
 
     @abc.abstractmethod
-    def read(self: 'IOFilter[T]', size: int) -> bytes:
+    def read(self: 'IOFilter[T]', size: int) -> typing.Tuple[bytes, int]:
         """Read and return up to size bytes.
 
         Args:
             size (int): It must be greater than 0. Note that multiple
                 underlying reads may be issued to satisfy the byte count.
 
+        Returns:
+            typing.Tuple[bytes, int]: The result bytes and a control number
+                that associates with the bytes.
+
         """
         if size is None or size <= 0:
             err = ValueError("Read size must be > 0")
             Util.log_and_raise(self.logger, err)
 
-        return bytes()
+        return (bytes(), 0)
 
     def get_count(self: 'IOFilter[T]') -> int:
         """Get the total number of raw bytes have read."""
