@@ -249,9 +249,9 @@ def __make_summary(
     raw_bytes_read_info = ''
     if not zerocopy:
         if total_raw_bytes_read:
-            raw_bytes_read_info = ' (raw {:d} bytes, {:.3f}%)'.format(
-                total_raw_bytes_read,
-                total_read / total_raw_bytes_read * 100)
+            raw_bytes_read_info = ' ({:.3f}% of {:d} raw bytes)'.format(
+                total_read / total_raw_bytes_read * 100,
+                total_raw_bytes_read)
 
     logger.info("[SUMMARY] [Sent: %d bytes] [Read: %d bytes%s] \
 [Duration: %s seconds] [Bitrate: %s bit/s]",

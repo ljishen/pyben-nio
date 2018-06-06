@@ -142,7 +142,7 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
     finally:
         t_end = dt.now().timestamp()
         t_dur = t_end - t_start
-        logger.info("[Received: %d bytes (raw %d bytes)] [Duration: %s seconds] \
+        logger.info("[Received: %d bytes (%d raw bytes)] [Duration: %s seconds] \
 [Bitrate: %s bit/s]",
                     recvd,
                     iofilter.get_count(),
@@ -192,8 +192,8 @@ def __do_start(args_ns):
     # We might not receive anything if the server failed.
     raw_bytes_read_info = ''
     if total_raw_bytes_read:
-        raw_bytes_read_info = ' (raw {:d} bytes, {:.3f}%)'.format(
-            total_raw_bytes_read, total_recvd / total_raw_bytes_read * 100)
+        raw_bytes_read_info = ' ({:.3f}% of {:d} raw bytes)'.format(
+            total_recvd / total_raw_bytes_read * 100, total_raw_bytes_read)
 
     logger.info("[SUMMARY] [Received: %d bytes%s] [Duration: %s seconds] \
 [Bitrate: %s bit/s]",
