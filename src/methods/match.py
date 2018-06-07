@@ -213,7 +213,7 @@ class MatchIO(Match[BufferedIOBase]):
         least_num_procs = total_size // min_proc_worksize
         work_sizes = [min_proc_worksize] * least_num_procs
         left = total_size - least_num_procs * min_proc_worksize
-        if left >= min_proc_worksize / 2:
+        if left >= min_proc_worksize / 2 or not least_num_procs:
             work_sizes.append(left)
         else:
             work_sizes[-1] += left
