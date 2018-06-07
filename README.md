@@ -20,7 +20,7 @@ Simple Python Network Socket Benchmark with Customized Read Workload Support.
 
 ## Version
 
-- 0.2
+- 0.3
 
 
 ## Usage
@@ -77,19 +77,20 @@ $ docker run --rm ljishen/pyben-nio --server desc -m match
 -------------------------------------------------------------------------------
 [MODULE] methods.match
 -------------------------------------------------------------------------------
-[DESC]   Read the bytes that match the function check.
-
-    The parameter func defines the function check that whether the read
-    operation should return the byte. The checking function should only accpet
-    a single argument as an int value representing the byte and return an
-    object that subsequently will be used in bytes filtering based on its truth
-    value.
-
-    Also see truth value testing in Python 3:
-    https://docs.python.org/3/library/stdtypes.html#truth-value-testing
-
-    
-[PARAMS] Extra method parameter {'func': typing.Callable[[int], object]}
+[DESC] Read the bytes from file that match the function check.
+[PARAMS]
+    func (typing.Callable[[int], object]): It defines the function check that
+        whether the read operation should return the byte. This function should
+        only accpet a single argument as an int value of the byte and return an
+        object that subsequently will be used in the bytes filtering based on
+        its truth value. Also see truth value testing in Python 3:
+        https://docs.python.org/3/library/stdtypes.html#truth-value-testing
+    sztype (SizeType): Optional. Control the size parameter whether it is the
+        size of the data filtering result (AFTER) or the size of total data
+        read (BEFORE). Choices: [BEFORE(B), AFTER(A)]. (Default: AFTER)
+    mpws (<class 'int'>): Optional. The minimum number of bytes that handle by
+        each process each time. The number of processes in use depends on the
+        bufsize and this value. (Default: 50MB)
 -------------------------------------------------------------------------------
 ```
 

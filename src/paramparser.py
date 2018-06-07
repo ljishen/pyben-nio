@@ -60,7 +60,7 @@ class ParameterParser(ArgumentParser):
         """
         MyVersionAction.set_prog_desc(self.description)
         self.add_argument('-v', '--version', action=MyVersionAction,
-                          version='%(prog)s version 0.2')
+                          version='%(prog)s version 0.3')
 
         subparsers = self.add_subparsers(
             help='Select either command to show more messages')
