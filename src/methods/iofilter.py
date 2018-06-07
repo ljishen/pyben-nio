@@ -47,12 +47,17 @@ class MethodParam(object):
         self.__desc = desc
         self.__default = default
 
+    def get_default(self: 'MethodParam'):
+        """Return the default value of this parameter."""
+        return self.__default
+
     def get_value(self: 'MethodParam', string: str) -> 'ParamValue':
         """Convert string to the object of desired type using the converter.
 
         Returns:
             ParamValue: A converted object if the string is not empty and
-                not None, otherwise the default value.
+                not None, otherwise the default value is used in place of the
+                string.
 
         """
         if not string:
@@ -196,25 +201,30 @@ class IOFilter(typing.Generic[T]):
 
             extra_args_dict[pair[0].strip()] = pair[1].strip()
 
-        cls.logger.info("[method: %s] [method parameters: %s]",
-                        cls.__module__, extra_args_dict)
+        cls.logger.info("[method: %s]", cls.__module__)
 
         method_params = cls._get_method_params()
 
         kwargs = {}  # type: typing.Dict[str, MethodParam.ParamValue]
+        method_params_dict = {}
 
         for paramobj in method_params:
-            input_v = extra_args_dict.pop(paramobj.name, '')
+            param_str = extra_args_dict.pop(
+                paramobj.name, paramobj.get_default())
             try:
-                kwargs[paramobj.name] = paramobj.get_value(input_v)
+                kwargs[paramobj.name] = paramobj.get_value(param_str)
             except ValueError as err:
                 Util.log_and_raise(cls.logger, err)
+
+            method_params_dict[paramobj.name] = param_str
 
         if extra_args_dict:
             Util.log_and_raise(
                 cls.logger,
                 ValueError("Unknow extra method paramsters %s"
                            % extra_args_dict))
+
+        cls.logger.info("[method parameters: %s]", method_params_dict)
 
         return cls(stream, bufsize, **kwargs)
 
