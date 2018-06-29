@@ -30,7 +30,7 @@ def __get_args():
         '-p', '--processes', type=int,
         help='Number of processes to generate random digits in parallel \
               instead of spawning one process per available CPU core',
-        default=len(os.sched_getaffinity(0)) - 1)
+        default=len(os.sched_getaffinity(0)))
     parser.add_argument(
         '-d', '--debug', action='store_true',
         help='Show debug messages',
