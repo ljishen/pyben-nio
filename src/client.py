@@ -8,7 +8,6 @@ from multiprocessing import Pool
 
 import logging
 import socket
-import sys
 
 from paramparser import ParameterParser
 from util import Util
@@ -220,7 +219,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         format='%(asctime)s | %(name)-16s | \
 %(levelname)-8s | PID=%(process)d | %(message)s',
-        level=logging.DEBUG, stream=sys.stdout)
+        level=logging.DEBUG)
     logger = logging.getLogger('client')  # pylint: disable=C0103
 
     main()
