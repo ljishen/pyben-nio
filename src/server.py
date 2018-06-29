@@ -8,6 +8,7 @@ from io import BufferedIOBase
 import logging
 import os
 import socket
+import sys
 import tempfile
 
 from paramparser import ParameterParser

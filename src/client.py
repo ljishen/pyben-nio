@@ -8,6 +8,7 @@ from multiprocessing import Pool
 
 import logging
 import socket
+import sys
 
 from paramparser import ParameterParser
 from util import Util
@@ -16,8 +17,8 @@ from util import Util
 def __populate_start_parser(start_parser):
     start_parser.add_argument(
         '-a', '--addresses', metavar='ADDRS', nargs='+',
-        help='The list of host names or IP addresses the servers are running on \
-              (separated by space)',
+        help='The list of host names or IP addresses the servers are running \
+              on (separated by space)',
         required=True)
     start_parser.add_argument(
         '-s', '--size', type=str,
@@ -25,8 +26,8 @@ def __populate_start_parser(start_parser):
         required=True)
     start_parser.add_argument(
         '-p', '--port', type=int,
-        help='The client connects to the port where the server is listening on \
-             (default: 8881)',
+        help='The client connects to the port where the server is listening \
+              on (default: 8881)',
         default=8881)
     start_parser.add_argument(
         '-b', '--bind', type=str,
@@ -142,8 +143,8 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
     finally:
         t_end = dt.now().timestamp()
         t_dur = t_end - t_start
-        logger.info("[Received: %d bytes (%d raw bytes)] [Duration: %s seconds] \
-[Bitrate: %s bit/s]",
+        logger.info("[Received: %d bytes (%d raw bytes)] \
+[Duration: %s seconds] [Bitrate: %s bit/s]",
                     recvd,
                     iofilter.get_count(),
                     t_dur, recvd * 8 / t_dur)
