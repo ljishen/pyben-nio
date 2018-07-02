@@ -45,8 +45,8 @@ class Match(iofilter.IOFilter[iofilter.T]):
             iofilter.MethodParam(
                 cls.PARAM_SIZETYPE,
                 cls.__convert_size_type,
-                'Control the size parameter whether it is the size of the data \
-                filtering result (AFTER) or the size of total data read \
+                'Control the size parameter whether it is the size of the \
+                data filtering result (AFTER) or the size of total data read \
                 (BEFORE). Choices: [BEFORE(B), AFTER(A)].',
                 'AFTER'
             )
