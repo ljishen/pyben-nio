@@ -138,10 +138,14 @@ def __send(left, bufsize, iofilter, client_s):
     bys = min(left, bufsize)
     bytes_obj, ctrl_num = iofilter.read(bys)
 
-    # pylint: disable=no-member
-    num_sent = client_s.send(bytes_obj)
-
+    # Applications are responsible for checking that all data has been sent.
+    #   https://docs.python.org/3/howto/sockets.html#using-a-socket
     byte_length = len(bytes_obj)
+    num_sent = 0
+    while num_sent < byte_length:
+        # pylint: disable=no-member
+        num_sent += client_s.send(bytes_obj[num_sent:])
+
     if logger.isEnabledFor(logging.DEBUG):
         bytes_summary = bytes(bytes_obj[:50])
         logger.debug("Sent %d bytes of data (summary: %r%s)",
