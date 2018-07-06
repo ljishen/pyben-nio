@@ -93,13 +93,13 @@ def __setup_socket(addr, port, bind_addr):
     # Connect to server
     try:
         sock.connect((addr, port))
+        logger.info("Connection established. Receiving data ...")
     except socket.error:
         logger.exception("Could not connect to the server %s", addr)
         sock.close()
         sock = None
         raise
 
-    logger.info("Connection established. Receiving data ...")
     return sock
 
 
@@ -140,8 +140,7 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
             "Fail to read data from buffered stream %r", sock)
         raise
     finally:
-        t_end = dt.now().timestamp()
-        t_dur = t_end - t_start
+        t_dur = dt.now().timestamp() - t_start
         logger.info("[Received: %d bytes (%d raw bytes)] \
 [Duration: %s seconds] [Bitrate: %s bit/s]",
                     recvd,
@@ -150,7 +149,7 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
         iofilter.close()
         logger.info("Socket closed")
 
-    return t_start, t_end, recvd, iofilter.get_count()
+    return t_dur, recvd, iofilter.get_count()
 
 
 def __allot_size(size, num):
@@ -183,10 +182,9 @@ def __do_start(args_ns):
                    for idx, size in enumerate(p_sizes)]
         multi_results = [f.get() for f in futures]
 
-    t_starts, t_ends, recvds, raw_bytes_reads = zip(*multi_results)
-    total_dur = max(t_ends) - min(t_starts)
+    t_durs, recvds, raw_bytes_reads = zip(*multi_results)
+    total_dur = sum(t_durs)
     total_recvd = sum(recvds)
-
     total_raw_bytes_read = sum(raw_bytes_reads)
 
     # We might not receive anything if the server failed.

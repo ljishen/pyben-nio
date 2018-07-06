@@ -156,10 +156,7 @@ def __send(left, bufsize, iofilter, client_s):
     return num_sent, byte_length, ctrl_num
 
 
-def __do_start(args_ns):
-    logger.info("[bufsize: %d bytes] [zerocopy: %r]",
-                args_ns.bufsize, args_ns.zerocopy)
-
+def __setup_env(args_ns):
     sock = __setup_socket(args_ns.bind_addr, args_ns.port)
 
     file_obj = __validate_file(args_ns.filename, args_ns.size)
@@ -181,6 +178,10 @@ def __do_start(args_ns):
         # If successful, we now have TWO sockets
         #  (1) The original listening socket, still active
         #  (2) The new socket connected to the client
+
+        logger.info("Accepted incoming connection %s from client. \
+Sending data ...", client_addr)
+
     except socket.error:
         logger.exception("Unable to accept()")
         sock.close()
@@ -190,8 +191,14 @@ def __do_start(args_ns):
             iofilter.close()
         raise
 
-    logger.info("Accepted incoming connection %s from client. \
-Sending data ...", client_addr)
+    return sock, file_obj, fsize, iofilter, client_s
+
+
+def __do_start(args_ns):
+    logger.info("[bufsize: %d bytes] [zerocopy: %r]",
+                args_ns.bufsize, args_ns.zerocopy)
+
+    sock, file_obj, fsize, iofilter, client_s = __setup_env(args_ns)
 
     left = args_ns.size
     total_sent = 0
@@ -227,8 +234,9 @@ Sending data ...", client_addr)
         logger.exception(
             "Fail to read data from buffered stream %r", file_obj.name)
     finally:
+        t_dur = dt.now().timestamp() - t_start
         __make_summary(args_ns.zerocopy,
-                       t_start,
+                       t_dur,
                        total_read,
                        iofilter.get_count(),
                        total_sent)
@@ -244,12 +252,10 @@ Sending data ...", client_addr)
 
 def __make_summary(
         zerocopy,
-        t_start,
+        t_dur,
         total_read,
         total_raw_bytes_read,
         total_sent):
-    t_dur = dt.now().timestamp() - t_start
-
     raw_bytes_read_info = ''
     if not zerocopy:
         if total_raw_bytes_read:
