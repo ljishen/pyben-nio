@@ -236,10 +236,9 @@ def __do_start(args_ns):
             "Fail to read data from buffered stream %r", file_obj.name)
     finally:
         t_dur = dt.now().timestamp() - t_start
-        __make_summary(args_ns.zerocopy,
-                       t_dur,
+        __make_summary(t_dur,
                        total_read,
-                       iofilter.get_count(),
+                       iofilter.get_count() if not args_ns.zerocopy else None,
                        total_sent)
 
         client_s.close()
@@ -252,17 +251,15 @@ def __do_start(args_ns):
 
 
 def __make_summary(
-        zerocopy,
         t_dur,
         total_read,
         total_raw_bytes_read,
         total_sent):
     raw_bytes_read_info = ''
-    if not zerocopy:
-        if total_raw_bytes_read:
-            raw_bytes_read_info = ' ({:.3f}% of {:d} raw bytes)'.format(
-                total_read / total_raw_bytes_read * 100,
-                total_raw_bytes_read)
+    if total_raw_bytes_read:
+        raw_bytes_read_info = ' ({:.3f}% of {:d} raw bytes)'.format(
+            total_read / total_raw_bytes_read * 100,
+            total_raw_bytes_read)
 
     logger.info("[SUMMARY] [Sent: %d bytes] [Read: %d bytes%s] \
 [Duration: %s seconds] [Bitrate: %s bit/s]",
