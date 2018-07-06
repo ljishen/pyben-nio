@@ -134,8 +134,9 @@ class IOFilter(typing.Generic[T]):
 
         """
         if size is None or size <= 0:
-            err = ValueError("Read size must be > 0")
-            Util.log_and_raise(self.logger, err)
+            raise Util.value_err(
+                self.logger,
+                "Read size must be > 0")
 
         return (bytes(), 0)
 
@@ -195,7 +196,7 @@ class IOFilter(typing.Generic[T]):
         for item in extra_args:
             pair = re.split('[:=]', item, maxsplit=1)
             if len(pair) < 2:
-                err = ValueError("Invalid method argument: " + str(pair))
+                err = ValueError("Invalid method argument: " + item)
                 cls.logger.error(str(err))
                 raise err
 
@@ -214,15 +215,15 @@ class IOFilter(typing.Generic[T]):
             try:
                 kwargs[paramobj.name] = paramobj.get_value(param_str)
             except ValueError as err:
-                Util.log_and_raise(cls.logger, err)
+                cls.logger.error(str(err))
+                raise err
 
             method_params_dict[paramobj.name] = param_str
 
         if extra_args_dict:
-            Util.log_and_raise(
+            raise Util.value_err(
                 cls.logger,
-                ValueError("Unknow extra method paramsters %s"
-                           % extra_args_dict))
+                "Unknow extra method paramsters {}".format(extra_args_dict))
 
         cls.logger.info("[method parameters: %s]", method_params_dict)
 

@@ -176,7 +176,7 @@ class MatchIO(Match[BufferedIOBase]):
         self._resbuf = bytearray()
 
     @classmethod
-    def _get_method_params(cls: typing.Type['Match']) -> typing.List[
+    def _get_method_params(cls: typing.Type['MatchIO']) -> typing.List[
             iofilter.MethodParam]:
         method_params = super()._get_method_params()
         method_params.append(
@@ -191,13 +191,13 @@ class MatchIO(Match[BufferedIOBase]):
         )
         return method_params
 
-    def close(self: 'Match') -> None:
+    def close(self: 'MatchIO') -> None:
         """Close associated resources."""
         super().close()
         if self._procs_pool:
             self._procs_pool.close()
 
-    def __get_and_update_res(self: 'Match', size: int) -> bytearray:
+    def __get_and_update_res(self: 'MatchIO', size: int) -> bytearray:
         if size >= len(self._resbuf):
             ret_res = self._resbuf
             self._resbuf = bytearray()
@@ -207,7 +207,7 @@ class MatchIO(Match[BufferedIOBase]):
         return ret_res
 
     def __allot_work_sizes(
-            self: 'Match', total_size: int) -> typing.List[int]:
+            self: 'MatchIO', total_size: int) -> typing.List[int]:
         min_proc_worksize = self.kwargs[self.PARAM_MINPROCWORKSIZE]
 
         least_num_procs = total_size // min_proc_worksize

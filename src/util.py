@@ -69,31 +69,30 @@ class Util(object):
                 Util.logger.debug("[method class: %r]", cls_obj)
                 return cls_obj
 
-        Util.log_and_raise(
+        raise Util.value_err(
             Util.logger,
-            ValueError(
-                "No class object of method %r found for stream type %s" %
-                (method, stream_type)))
+            "No class object of method {!r} found for stream type {}".format(
+                method, stream_type))
 
     # pylint: disable=inconsistent-return-statements
     @staticmethod
     def human2bytes(size: str) -> int:
         """Convert the human readable size to the size in bytes."""
         if '.' in size:
-            Util.log_and_raise(
+            raise Util.value_err(
                 Util.logger,
-                ValueError("Can't parse non-integer size %r" % size))
+                "Can't parse non-integer size {!r}".format(size))
 
         if '-' in size:
-            Util.log_and_raise(
+            raise Util.value_err(
                 Util.logger,
-                ValueError("Input size %r is not positive" % size))
+                "Input size {!r} is not positive".format(size))
 
         num_s = re.split(r'\D+', size)[0]
         if not num_s:
-            Util.log_and_raise(
+            raise Util.value_err(
                 Util.logger,
-                ValueError("Invalid input size %r" % size))
+                "Invalid input size {!r}".format(size))
 
         unit = size[len(num_s):].lower()
         num = int(num_s)
@@ -106,12 +105,12 @@ class Util(object):
                 return num
             num <<= 10
 
-        Util.log_and_raise(
+        raise Util.value_err(
             Util.logger,
-            ValueError("Invalid input size %r" % size))
+            "Invalid input size {!r}".format(size))
 
     @staticmethod
-    def log_and_raise(logger, err):
-        """Log the error before raise it."""
-        logger.error(str(err))
-        raise err
+    def value_err(logger, err_msg):
+        """Log the error before returning the err object."""
+        logger.error(err_msg)
+        return ValueError(err_msg)
