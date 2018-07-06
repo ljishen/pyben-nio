@@ -59,8 +59,8 @@ optional arguments:
   -p PORT, --port PORT  The port for the server to listen on (default: 8881)
   -f FN, --filename FN  Read from this file and write to the network, instead
                         of generating a temporary file with random data
-  -l BS, --bufsize BS   The maximum amount of data in bytes to be sent at once
-                        (default: 4K) ([BKMG])
+  -l BS, --bufsize BS   The maximum amount of data to be sent at once
+                        (default: 4KB) ([BKMG])
   -m {linspace,match,raw}, --method {linspace,match,raw}
                         The data filtering method to apply on reading from the
                         file (default: raw). Use semicolon (;) to separate
@@ -98,7 +98,7 @@ $ docker run --rm ljishen/pyben-nio --server desc -m match
 ```bash
 $ docker run --rm ljishen/pyben-nio --client start --help
 usage: client.py start [-h] [-d] -a ADDRS [ADDRS ...] -s SIZE [-p PORT]
-                       [-b BIND] [-l BS] [-m {linspace,match,raw}]
+                       [-b BIND] [-l BS] [-c CACHE] [-m {linspace,match,raw}]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -113,8 +113,11 @@ optional arguments:
                         rather than allowing the kernel to set the local
                         address to INADDR_ANY during connect (see ip(7),
                         connect(2))
-  -l BS, --bufsize BS   The maximum amount of data in bytes to be received at
-                        once (default: 4K) ([BKMG])
+  -l BS, --bufsize BS   The maximum amount of data to be received at once
+                        (default: 4KB) ([BKMG])
+  -c CACHE, --cache CACHE
+                        Size of cache for keeping the most recent received
+                        data (default: 512MB) ([BKMG])
   -m {linspace,match,raw}, --method {linspace,match,raw}
                         The data filtering method to apply on reading from the
                         socket (default: raw). Use semicolon (;) to separate

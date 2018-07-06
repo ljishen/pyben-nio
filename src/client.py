@@ -35,9 +35,14 @@ def __populate_start_parser(start_parser):
               INADDR_ANY during connect (see ip(7), connect(2))')
     start_parser.add_argument(
         '-l', '--bufsize', metavar='BS', type=str,
-        help='The maximum amount of data in bytes to be received at once \
-              (default: 4K) ([BKMG])',
-        default='4K')
+        help='The maximum amount of data to be received at once \
+              (default: 4KB) ([BKMG])',
+        default='4KB')
+    start_parser.add_argument(
+        '-c', '--cache', type=str,
+        help='Size of cache for keeping the most recent received data \
+              (default: 512MB) ([BKMG])',
+        default='512MB')
 
     start_parser.set_multi_value_dest('method')
     start_parser.add_argument(
@@ -57,6 +62,7 @@ def __handle_start(arg_attrs_ns):
         port=arg_attrs_ns.port,
         bind_addr=arg_attrs_ns.bind,
         bufsize=Util.human2bytes(arg_attrs_ns.bufsize),
+        cache=Util.human2bytes(arg_attrs_ns.cache),
         method=ParameterParser.split_multi_value_param(arg_attrs_ns.method))
 
     __do_start(args_ns)
@@ -109,8 +115,10 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
     iofilter = classobj.create(
         sock, args_ns.bufsize, extra_args=args_ns.method[1:])
 
+    if mem_limit_bs:
+        byte_mem = deque(maxlen=mem_limit_bs)  # type: typing.Deque[int]
+
     left = size
-    byte_mem = deque(maxlen=mem_limit_bs)  # type: typing.Deque[int]
     recvd = 0
 
     t_start = dt.now().timestamp()
@@ -121,7 +129,8 @@ def __run(idx, classobj, args_ns, size, mem_limit_bs):
             if not ctrl_num:
                 break
 
-            byte_mem.extend(bytes_obj)
+            if mem_limit_bs:
+                byte_mem.extend(bytes_obj)
 
             byte_length = len(bytes_obj)
             recvd += byte_length
@@ -174,7 +183,7 @@ def __do_start(args_ns):
     p_sizes = __allot_size(args_ns.size, num_servs)
     classobj = Util.get_classobj_of(args_ns.method[0], socket.socket)
 
-    mem_limit_bs = Util.human2bytes('500MB') // num_servs
+    mem_limit_bs = args_ns.cache // num_servs
 
     with Pool(processes=num_servs) as pool:
         futures = [pool.apply_async(__run,

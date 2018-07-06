@@ -33,9 +33,9 @@ def __populate_start_parser(start_parser):
               instead of generating a temporary file with random data')
     start_parser.add_argument(
         '-l', '--bufsize', metavar='BS', type=str,
-        help='The maximum amount of data in bytes to be sent at once \
-              (default: 4K) ([BKMG])',
-        default='4K')
+        help='The maximum amount of data to be sent at once \
+              (default: 4KB) ([BKMG])',
+        default='4KB')
 
     # Since socket.sendfile() performs the data reading and sending within
     # the kernel space, there is no user space function can inject into
