@@ -164,6 +164,7 @@ def __setup_env(args_ns):
     if not fsize:
         raise RuntimeError("Invalid file size", fsize)
 
+    iofilter = None
     if not args_ns.zerocopy:
         classobj = Util.get_classobj_of(args_ns.method[0], type(file_obj))
         iofilter = classobj.create(
